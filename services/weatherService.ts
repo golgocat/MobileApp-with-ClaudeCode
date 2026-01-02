@@ -12,7 +12,13 @@ import {
 
 const ACCUWEATHER_API_KEY =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_ACCUWEATHER_API_KEY || '';
-const BASE_URL = 'http://dataservice.accuweather.com';
+const BASE_URL = 'https://dataservice.accuweather.com';
+
+// Debug: Log API key status at module load
+console.log('🔧 WeatherService loaded');
+console.log('🔧 Constants.expoConfig:', Constants.expoConfig ? 'exists' : 'undefined');
+console.log('🔧 Constants.expoConfig.extra:', Constants.expoConfig?.extra ? 'exists' : 'undefined');
+console.log('🔧 API Key:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
 
 // AccuWeather uses a fixed location key for Dubai
 const DUBAI_LOCATION_KEY = '323091'; // Dubai, AE
