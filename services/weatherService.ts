@@ -10,19 +10,18 @@ import {
   AccuWeatherHourlyForecast,
 } from './weather.types';
 
-// Try multiple ways to get the API key
-const ACCUWEATHER_API_KEY =
-  process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY ||
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_ACCUWEATHER_API_KEY ||
-  '';
-const BASE_URL = 'https://dataservice.accuweather.com';
+// Try multiple ways to get the API key - with detailed logging
+const apiKeyFromEnv = process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY;
+const apiKeyFromConstants = Constants.expoConfig?.extra?.EXPO_PUBLIC_ACCUWEATHER_API_KEY;
 
-// Debug: Log API key status at module load
-console.warn('🔧 WeatherService loaded');
-console.warn('🔧 process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY:', process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY ? 'SET via process.env' : 'NOT SET');
-console.warn('🔧 Constants.expoConfig:', Constants.expoConfig ? 'exists' : 'undefined');
-console.warn('🔧 Constants.expoConfig.extra:', Constants.expoConfig?.extra ? 'exists' : 'undefined');
-console.warn('🔧 Final API Key:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
+console.error('========================================');
+console.error('🔧 WeatherService MODULE LOADED');
+console.error('🔧 process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY:', apiKeyFromEnv || 'UNDEFINED');
+console.error('🔧 Constants.expoConfig?.extra?.EXPO_PUBLIC_ACCUWEATHER_API_KEY:', apiKeyFromConstants || 'UNDEFINED');
+console.error('========================================');
+
+const ACCUWEATHER_API_KEY = apiKeyFromEnv || apiKeyFromConstants || '';
+const BASE_URL = 'https://dataservice.accuweather.com';
 
 // AccuWeather uses a fixed location key for Dubai
 const DUBAI_LOCATION_KEY = '323091'; // Dubai, AE
@@ -400,21 +399,16 @@ export class WeatherService {
     days: number = 7
   ): Promise<WeatherData> {
     try {
-      console.warn('🔑 API Key loaded:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
-      console.warn('🌍 Fetching weather for:', location);
+      console.error('========================================');
+      console.error('🌍 FETCHING WEATHER FOR:', location);
+      console.error('🔑 API Key Status:', ACCUWEATHER_API_KEY ? `Loaded (${ACCUWEATHER_API_KEY.length} chars, starts with: ${ACCUWEATHER_API_KEY.substring(0, 5)})` : 'NOT SET - THIS IS THE PROBLEM!');
+      console.error('========================================');
 
       if (!ACCUWEATHER_API_KEY || ACCUWEATHER_API_KEY === '') {
         throw new Error(
-          'AccuWeather API key is not configured. Please add EXPO_PUBLIC_ACCUWEATHER_API_KEY to your .env file'
+          'API KEY NOT LOADED! Check that EXPO_PUBLIC_ACCUWEATHER_API_KEY is set in .env file'
         );
       }
-
-      // Show detailed error for debugging
-      console.warn('🔍 DEBUG INFO:');
-      console.warn('  - API Key length:', ACCUWEATHER_API_KEY.length);
-      console.warn('  - API Key prefix:', ACCUWEATHER_API_KEY.substring(0, 5));
-      console.warn('  - Using Bearer auth:', ACCUWEATHER_API_KEY.startsWith('zpka_'));
-      console.warn('  - Base URL:', BASE_URL);
 
       // For Dubai, we can use the hardcoded location key for better performance
       let locationKey = DUBAI_LOCATION_KEY;
