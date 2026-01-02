@@ -1,7 +1,10 @@
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet, Pressable, Modal } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWeather } from '../../hooks/useWeather';
+import { DESTINATIONS } from '../../constants/destinations';
+import { Destination } from '../../types/travel.types';
 import {
   CurrentWeather,
   HourlyForecast,
@@ -10,7 +13,10 @@ import {
 } from '../../components/weather';
 
 export default function WeatherScreen() {
-  const { weather, loading, error, refreshing, refresh } = useWeather();
+  const [selectedLocation, setSelectedLocation] = useState<Destination>(DESTINATIONS[1]); // Default to Dubai
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+
+  const { weather, loading, error, refreshing, refresh } = useWeather(selectedLocation.accuWeatherKey);
 
   if (loading && !weather) {
     return (
@@ -61,6 +67,17 @@ export default function WeatherScreen() {
             </View>
           )}
 
+          {/* Location Picker */}
+          <Pressable
+            style={styles.locationPicker}
+            onPress={() => setShowLocationPicker(true)}
+          >
+            <Text style={styles.locationText}>
+              {selectedLocation.displayName}, {selectedLocation.countryCode}
+            </Text>
+            <Text style={styles.locationArrow}>▼</Text>
+          </Pressable>
+
           {/* Current Weather */}
           {weather?.current && <CurrentWeather current={weather.current} />}
 
@@ -83,6 +100,45 @@ export default function WeatherScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Location Picker Modal */}
+      <Modal
+        visible={showLocationPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLocationPicker(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowLocationPicker(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Location</Text>
+            {DESTINATIONS.map((dest) => (
+              <Pressable
+                key={dest.id}
+                style={[
+                  styles.modalOption,
+                  selectedLocation.id === dest.id && styles.modalOptionSelected,
+                ]}
+                onPress={() => {
+                  setSelectedLocation(dest);
+                  setShowLocationPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    selectedLocation.id === dest.id && styles.modalOptionTextSelected,
+                  ]}
+                >
+                  {dest.displayName}, {dest.countryCode}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -144,6 +200,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
+  locationPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  locationText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  locationArrow: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    marginLeft: 8,
+  },
   attribution: {
     alignItems: 'center',
     paddingBottom: 32,
@@ -151,5 +224,42 @@ const styles = StyleSheet.create({
   attributionText: {
     color: 'rgba(255,255,255,0.4)',
     fontSize: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#1e3a5f',
+    borderRadius: 16,
+    padding: 20,
+    width: '80%',
+    maxWidth: 320,
+  },
+  modalTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  modalOptionSelected: {
+    backgroundColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  modalOptionText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
+  },
+  modalOptionTextSelected: {
+    color: 'white',
+    fontWeight: '600',
   },
 });

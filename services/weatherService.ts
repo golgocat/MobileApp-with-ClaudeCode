@@ -8,8 +8,8 @@ import {
 const API_KEY = process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY || '';
 const BASE_URL = 'https://dataservice.accuweather.com';
 
-// Dubai location key for AccuWeather
-const DUBAI_LOCATION_KEY = '323091';
+// Default location key (Dubai)
+const DEFAULT_LOCATION_KEY = '323091';
 
 class WeatherService {
   private async fetchWithTimeout(
@@ -29,8 +29,8 @@ class WeatherService {
     }
   }
 
-  async getCurrentConditions(): Promise<CurrentConditions> {
-    const url = `${BASE_URL}/currentconditions/v1/${DUBAI_LOCATION_KEY}?apikey=${API_KEY}&details=true`;
+  async getCurrentConditions(locationKey: string = DEFAULT_LOCATION_KEY): Promise<CurrentConditions> {
+    const url = `${BASE_URL}/currentconditions/v1/${locationKey}?apikey=${API_KEY}&details=true`;
 
     const response = await this.fetchWithTimeout(url);
 
@@ -42,8 +42,8 @@ class WeatherService {
     return data[0];
   }
 
-  async getHourlyForecast(): Promise<HourlyForecast[]> {
-    const url = `${BASE_URL}/forecasts/v1/hourly/12hour/${DUBAI_LOCATION_KEY}?apikey=${API_KEY}&metric=true&details=true`;
+  async getHourlyForecast(locationKey: string = DEFAULT_LOCATION_KEY): Promise<HourlyForecast[]> {
+    const url = `${BASE_URL}/forecasts/v1/hourly/12hour/${locationKey}?apikey=${API_KEY}&metric=true&details=true`;
 
     const response = await this.fetchWithTimeout(url);
 
@@ -54,8 +54,8 @@ class WeatherService {
     return response.json();
   }
 
-  async getDailyForecast(): Promise<DailyForecastResponse> {
-    const url = `${BASE_URL}/forecasts/v1/daily/5day/${DUBAI_LOCATION_KEY}?apikey=${API_KEY}&metric=true&details=false`;
+  async getDailyForecast(locationKey: string = DEFAULT_LOCATION_KEY): Promise<DailyForecastResponse> {
+    const url = `${BASE_URL}/forecasts/v1/daily/5day/${locationKey}?apikey=${API_KEY}&metric=true&details=false`;
 
     const response = await this.fetchWithTimeout(url);
 
@@ -66,11 +66,11 @@ class WeatherService {
     return response.json();
   }
 
-  async getAllWeatherData(): Promise<WeatherData> {
+  async getAllWeatherData(locationKey: string = DEFAULT_LOCATION_KEY): Promise<WeatherData> {
     const [current, hourly, dailyResponse] = await Promise.all([
-      this.getCurrentConditions(),
-      this.getHourlyForecast(),
-      this.getDailyForecast(),
+      this.getCurrentConditions(locationKey),
+      this.getHourlyForecast(locationKey),
+      this.getDailyForecast(locationKey),
     ]);
 
     return {

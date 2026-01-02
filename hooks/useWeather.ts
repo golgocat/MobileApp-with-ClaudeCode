@@ -10,7 +10,7 @@ interface UseWeatherReturn {
   refresh: () => Promise<void>;
 }
 
-export function useWeather(): UseWeatherReturn {
+export function useWeather(locationKey?: string): UseWeatherReturn {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<WeatherError | null>(null);
@@ -25,7 +25,7 @@ export function useWeather(): UseWeatherReturn {
       }
       setError(null);
 
-      const data = await weatherService.getAllWeatherData();
+      const data = await weatherService.getAllWeatherData(locationKey);
       setWeather(data);
     } catch (err) {
       const message =
@@ -36,7 +36,7 @@ export function useWeather(): UseWeatherReturn {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [locationKey]);
 
   useEffect(() => {
     fetchWeather();
