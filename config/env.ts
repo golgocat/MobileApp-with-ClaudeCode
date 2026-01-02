@@ -16,7 +16,7 @@ function readExtra(): Extra {
 export const ENV = {
   GEMINI_API_KEY: readExtra().GEMINI_API_KEY ?? "",
   ACCUWEATHER_API_KEY: readExtra().ACCUWEATHER_API_KEY ?? process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY ?? "",
-  GEMINI_MODEL: readExtra().GEMINI_MODEL ?? "gemini-1.5-pro",
+  GEMINI_MODEL: readExtra().GEMINI_MODEL ?? "gemini-2.0-flash",
   APP_ENV: readExtra().APP_ENV ?? "development",
 };
 
