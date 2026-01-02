@@ -104,7 +104,8 @@ export class WeatherService {
       );
 
       if (!response.ok) {
-        throw new Error(`Daily forecast fetch failed: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Daily forecast fetch failed (${response.status}): ${errorText}`);
       }
 
       const forecast = await response.json();
