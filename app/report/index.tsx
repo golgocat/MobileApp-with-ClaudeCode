@@ -352,11 +352,20 @@ export default function ReportScreen() {
                 {(["LOW", "MEDIUM", "HIGH", "EXTREME"] as DayRiskLevel[]).map((level) => {
                   const count = report.days.filter((d) => d.riskLevel === level).length;
                   if (count === 0) return null;
+                  const labels: Record<DayRiskLevel, string> = {
+                    LOW: "Clear",
+                    MEDIUM: "Fair",
+                    HIGH: "Rainy",
+                    EXTREME: "Severe",
+                  };
                   return (
-                    <View key={level} style={styles.distributionItem}>
+                    <View
+                      key={level}
+                      style={[styles.distributionPill, { backgroundColor: RISK_BG_COLORS[level] }]}
+                    >
                       <Text style={styles.distributionEmoji}>{RISK_EMOJIS[level]}</Text>
-                      <Text style={[styles.distributionCount, { color: RISK_COLORS[level] }]}>
-                        {count}
+                      <Text style={[styles.distributionText, { color: RISK_COLORS[level] }]}>
+                        {count} {labels[level]}
                       </Text>
                     </View>
                   );
@@ -532,23 +541,27 @@ const styles = StyleSheet.create({
   },
   dayDistribution: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "center",
-    paddingTop: 12,
+    paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
-    gap: 20,
+    gap: 8,
   },
-  distributionItem: {
+  distributionPill: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     gap: 4,
   },
   distributionEmoji: {
-    fontSize: 18,
+    fontSize: 14,
   },
-  distributionCount: {
-    fontSize: 16,
-    fontWeight: "700",
+  distributionText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   dayList: {
     marginBottom: 24,
