@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { DailyForecast as DailyForecastType } from '../../types/weather.types';
 import { weatherService } from '../../services/weatherService';
 
@@ -17,18 +17,18 @@ function DayItem({ item, isToday }: { item: DailyForecastType; isToday: boolean 
     : date.toLocaleDateString('en-US', { weekday: 'short' });
 
   return (
-    <View className="flex-row items-center justify-between py-3 px-5 border-b border-white/10 last:border-b-0">
-      <Text className="text-white text-base font-medium w-16">{dayName}</Text>
-      <View className="flex-row items-center flex-1 justify-center">
-        <Text className="text-3xl mr-2">{emoji}</Text>
+    <View style={styles.dayItem}>
+      <Text style={styles.dayName}>{dayName}</Text>
+      <View style={styles.iconContainer}>
+        <Text style={styles.emoji}>{emoji}</Text>
         {item.Day.HasPrecipitation && (
-          <Text className="text-cyan-300 text-xs">Rain</Text>
+          <Text style={styles.precipitation}>Rain</Text>
         )}
       </View>
-      <View className="flex-row items-center w-20 justify-end">
-        <Text className="text-white text-base font-semibold">{high}°</Text>
-        <Text className="text-white/50 text-base mx-1">/</Text>
-        <Text className="text-white/60 text-base">{low}°</Text>
+      <View style={styles.tempContainer}>
+        <Text style={styles.highTemp}>{high}°</Text>
+        <Text style={styles.tempDivider}>/</Text>
+        <Text style={styles.lowTemp}>{low}°</Text>
       </View>
     </View>
   );
@@ -36,11 +36,9 @@ function DayItem({ item, isToday }: { item: DailyForecastType; isToday: boolean 
 
 export function DailyForecast({ daily }: DailyForecastProps) {
   return (
-    <View className="mt-6 mx-4">
-      <Text className="text-white text-lg font-semibold px-1 mb-3">
-        5-Day Forecast
-      </Text>
-      <View className="bg-white/10 rounded-3xl backdrop-blur-lg overflow-hidden">
+    <View style={styles.container}>
+      <Text style={styles.title}>5-Day Forecast</Text>
+      <View style={styles.card}>
         {daily.map((item, index) => (
           <DayItem key={item.EpochDate} item={item} isToday={index === 0} />
         ))}
@@ -48,3 +46,71 @@ export function DailyForecast({ daily }: DailyForecastProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginTop: 24,
+    marginHorizontal: 16,
+  },
+  title: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    paddingHorizontal: 4,
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  dayItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  dayName: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+    width: 64,
+  },
+  iconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  emoji: {
+    fontSize: 28,
+    marginRight: 8,
+  },
+  precipitation: {
+    color: '#67e8f9',
+    fontSize: 12,
+  },
+  tempContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 80,
+    justifyContent: 'flex-end',
+  },
+  highTemp: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  tempDivider: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 16,
+    marginHorizontal: 4,
+  },
+  lowTemp: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 16,
+  },
+});

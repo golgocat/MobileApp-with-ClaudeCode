@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { CurrentConditions } from '../../types/weather.types';
 import { weatherService } from '../../services/weatherService';
 
@@ -12,49 +12,96 @@ export function CurrentWeather({ current }: CurrentWeatherProps) {
   const feelsLike = Math.round(current.RealFeelTemperature.Metric.Value);
 
   return (
-    <View className="items-center py-8">
+    <View style={styles.container}>
       {/* Location */}
-      <Text className="text-white/80 text-lg font-medium mb-2">Dubai, UAE</Text>
+      <Text style={styles.location}>Dubai, UAE</Text>
 
       {/* Weather Icon */}
-      <Text className="text-8xl mb-4">{emoji}</Text>
+      <Text style={styles.emoji}>{emoji}</Text>
 
       {/* Temperature */}
-      <Text className="text-white text-8xl font-extralight">{temp}°</Text>
+      <Text style={styles.temperature}>{temp}°</Text>
 
       {/* Weather Description */}
-      <Text className="text-white text-2xl font-medium mt-2">
-        {current.WeatherText}
-      </Text>
+      <Text style={styles.description}>{current.WeatherText}</Text>
 
       {/* Feels Like */}
-      <Text className="text-white/70 text-base mt-1">
-        Feels like {feelsLike}°
-      </Text>
+      <Text style={styles.feelsLike}>Feels like {feelsLike}°</Text>
 
-      {/* High/Low - We'll show humidity instead since we don't have daily in current */}
-      <View className="flex-row mt-4 gap-4">
-        <View className="items-center">
-          <Text className="text-white/60 text-sm">Humidity</Text>
-          <Text className="text-white text-lg font-semibold">
-            {current.RelativeHumidity}%
-          </Text>
+      {/* Quick Stats */}
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>Humidity</Text>
+          <Text style={styles.statValue}>{current.RelativeHumidity}%</Text>
         </View>
-        <View className="w-px bg-white/30 h-10" />
-        <View className="items-center">
-          <Text className="text-white/60 text-sm">Wind</Text>
-          <Text className="text-white text-lg font-semibold">
+        <View style={styles.divider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>Wind</Text>
+          <Text style={styles.statValue}>
             {Math.round(current.Wind.Speed.Metric.Value)} km/h
           </Text>
         </View>
-        <View className="w-px bg-white/30 h-10" />
-        <View className="items-center">
-          <Text className="text-white/60 text-sm">UV Index</Text>
-          <Text className="text-white text-lg font-semibold">
-            {current.UVIndex}
-          </Text>
+        <View style={styles.divider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>UV Index</Text>
+          <Text style={styles.statValue}>{current.UVIndex}</Text>
         </View>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  location: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 18,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  emoji: {
+    fontSize: 96,
+    marginBottom: 16,
+  },
+  temperature: {
+    color: 'white',
+    fontSize: 96,
+    fontWeight: '200',
+  },
+  description: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  feelsLike: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 16,
+    marginTop: 4,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    marginTop: 16,
+    gap: 16,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+  },
+  statValue: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+});

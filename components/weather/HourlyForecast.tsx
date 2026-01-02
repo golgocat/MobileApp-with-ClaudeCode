@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { HourlyForecast as HourlyForecastType } from '../../types/weather.types';
 import { weatherService } from '../../services/weatherService';
 
@@ -14,14 +14,12 @@ function HourlyItem({ item, isFirst }: { item: HourlyForecastType; isFirst: bool
   const displayTime = isFirst ? 'Now' : `${hour}:00`;
 
   return (
-    <View className="items-center px-4 py-3">
-      <Text className="text-white/80 text-sm font-medium">{displayTime}</Text>
-      <Text className="text-4xl my-2">{emoji}</Text>
-      <Text className="text-white text-lg font-semibold">{temp}°</Text>
+    <View style={styles.hourlyItem}>
+      <Text style={styles.time}>{displayTime}</Text>
+      <Text style={styles.emoji}>{emoji}</Text>
+      <Text style={styles.temp}>{temp}°</Text>
       {item.PrecipitationProbability > 0 && (
-        <Text className="text-cyan-300 text-xs mt-1">
-          {item.PrecipitationProbability}%
-        </Text>
+        <Text style={styles.precipitation}>{item.PrecipitationProbability}%</Text>
       )}
     </View>
   );
@@ -29,15 +27,13 @@ function HourlyItem({ item, isFirst }: { item: HourlyForecastType; isFirst: bool
 
 export function HourlyForecast({ hourly }: HourlyForecastProps) {
   return (
-    <View className="mt-6">
-      <Text className="text-white text-lg font-semibold px-5 mb-3">
-        Hourly Forecast
-      </Text>
-      <View className="bg-white/10 rounded-3xl mx-4 backdrop-blur-lg">
+    <View style={styles.container}>
+      <Text style={styles.title}>Hourly Forecast</Text>
+      <View style={styles.card}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 8 }}
+          contentContainerStyle={styles.scrollContent}
         >
           {hourly.slice(0, 12).map((item, index) => (
             <HourlyItem
@@ -51,3 +47,48 @@ export function HourlyForecast({ hourly }: HourlyForecastProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginTop: 24,
+  },
+  title: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 24,
+    marginHorizontal: 16,
+  },
+  scrollContent: {
+    paddingHorizontal: 8,
+  },
+  hourlyItem: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  time: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  emoji: {
+    fontSize: 32,
+    marginVertical: 8,
+  },
+  temp: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  precipitation: {
+    color: '#67e8f9',
+    fontSize: 12,
+    marginTop: 4,
+  },
+});

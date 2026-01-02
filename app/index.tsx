@@ -1,5 +1,4 @@
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWeather } from '../hooks/useWeather';
@@ -15,53 +14,36 @@ export default function WeatherScreen() {
 
   if (loading && !weather) {
     return (
-      <LinearGradient
-        colors={['#1e3a5f', '#2d5a87', '#3d7ab5']}
-        className="flex-1"
-      >
-        <SafeAreaView className="flex-1 items-center justify-center">
+      <View style={styles.container}>
+        <SafeAreaView style={styles.centerContent}>
           <ActivityIndicator size="large" color="white" />
-          <Text className="text-white text-lg mt-4">Loading weather...</Text>
+          <Text style={styles.loadingText}>Loading weather...</Text>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     );
   }
 
   if (error && !weather) {
     return (
-      <LinearGradient
-        colors={['#1e3a5f', '#2d5a87', '#3d7ab5']}
-        className="flex-1"
-      >
-        <SafeAreaView className="flex-1 items-center justify-center px-6">
-          <Text className="text-6xl mb-4">⚠️</Text>
-          <Text className="text-white text-xl font-semibold text-center">
-            Oops! Something went wrong
-          </Text>
-          <Text className="text-white/70 text-base text-center mt-2">
-            {error.message}
-          </Text>
-          <Text className="text-white/50 text-sm text-center mt-4">
+      <View style={styles.container}>
+        <SafeAreaView style={styles.centerContent}>
+          <Text style={styles.errorEmoji}>⚠️</Text>
+          <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
+          <Text style={styles.errorMessage}>{error.message}</Text>
+          <Text style={styles.errorHint}>
             Please check your internet connection and try again
           </Text>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     );
   }
 
   return (
-    <LinearGradient
-      colors={
-        weather?.current?.IsDayTime
-          ? ['#1e3a5f', '#2d5a87', '#4a90c2']
-          : ['#0f1c2e', '#1a2f4a', '#243b55']
-      }
-      className="flex-1"
-    >
+    <View style={[styles.container, weather?.current?.IsDayTime ? styles.dayBg : styles.nightBg]}>
       <StatusBar style="light" />
-      <SafeAreaView className="flex-1" edges={['top']}>
+      <SafeAreaView style={styles.flex} edges={['top']}>
         <ScrollView
-          className="flex-1"
+          style={styles.flex}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -74,10 +56,8 @@ export default function WeatherScreen() {
         >
           {/* Headline */}
           {weather?.headline && (
-            <View className="px-5 pt-2">
-              <Text className="text-white/80 text-sm text-center italic">
-                {weather.headline}
-              </Text>
+            <View style={styles.headlineContainer}>
+              <Text style={styles.headline}>{weather.headline}</Text>
             </View>
           )}
 
@@ -98,13 +78,78 @@ export default function WeatherScreen() {
           {weather?.current && <WeatherDetails current={weather.current} />}
 
           {/* Attribution */}
-          <View className="items-center pb-8">
-            <Text className="text-white/40 text-xs">
-              Powered by AccuWeather
-            </Text>
+          <View style={styles.attribution}>
+            <Text style={styles.attributionText}>Powered by AccuWeather</Text>
           </View>
         </ScrollView>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#1e3a5f',
+  },
+  dayBg: {
+    backgroundColor: '#2d5a87',
+  },
+  nightBg: {
+    backgroundColor: '#0f1c2e',
+  },
+  flex: {
+    flex: 1,
+  },
+  centerContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: 18,
+    marginTop: 16,
+  },
+  errorEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  errorMessage: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  errorHint: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  headlineContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  headline: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  attribution: {
+    alignItems: 'center',
+    paddingBottom: 32,
+  },
+  attributionText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+  },
+});

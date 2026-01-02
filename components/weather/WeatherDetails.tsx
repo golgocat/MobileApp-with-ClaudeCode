@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { CurrentConditions } from '../../types/weather.types';
 
 interface WeatherDetailsProps {
@@ -13,14 +13,12 @@ interface DetailItemProps {
 
 function DetailItem({ label, value, icon }: DetailItemProps) {
   return (
-    <View className="bg-white/10 rounded-2xl p-4 flex-1 min-w-[45%] m-1.5">
-      <View className="flex-row items-center mb-2">
-        <Text className="text-xl mr-2">{icon}</Text>
-        <Text className="text-white/60 text-sm uppercase tracking-wide">
-          {label}
-        </Text>
+    <View style={styles.detailItem}>
+      <View style={styles.labelRow}>
+        <Text style={styles.icon}>{icon}</Text>
+        <Text style={styles.label}>{label}</Text>
       </View>
-      <Text className="text-white text-2xl font-semibold">{value}</Text>
+      <Text style={styles.value}>{value}</Text>
     </View>
   );
 }
@@ -32,11 +30,9 @@ export function WeatherDetails({ current }: WeatherDetailsProps) {
   const windDirection = current.Wind.Direction.Localized;
 
   return (
-    <View className="mt-6 mx-4 mb-8">
-      <Text className="text-white text-lg font-semibold px-1 mb-3">
-        Weather Details
-      </Text>
-      <View className="flex-row flex-wrap">
+    <View style={styles.container}>
+      <Text style={styles.title}>Weather Details</Text>
+      <View style={styles.grid}>
         <DetailItem
           label="Humidity"
           value={`${current.RelativeHumidity}%`}
@@ -71,3 +67,49 @@ export function WeatherDetails({ current }: WeatherDetailsProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginTop: 24,
+    marginHorizontal: 16,
+    marginBottom: 32,
+  },
+  title: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    paddingHorizontal: 4,
+    marginBottom: 12,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  detailItem: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    padding: 16,
+    width: '48%',
+    margin: '1%',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  icon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  label: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  value: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+});
