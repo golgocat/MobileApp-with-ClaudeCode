@@ -2,10 +2,13 @@ import {
   View,
   Text,
   ScrollView,
+  Pressable,
   StyleSheet,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import { DayRisk, DayForecast, TravelRiskReport, DayRiskLevel } from "../../types/travel.types";
+import { getDestination } from "../../constants/destinations";
+import { DestinationId } from "../../types/travel.types";
 import { formatDate } from "../../utils/dateRange";
 
 const RISK_COLORS: Record<DayRiskLevel, string> = {
@@ -60,9 +63,12 @@ function StatRow({
 export default function DayDetailScreen() {
   const params = useLocalSearchParams<{
     date: string;
+    destinationId: string;
     reportJson: string;
     forecastJson: string;
   }>();
+
+  const destination = getDestination(params.destinationId as DestinationId);
 
   let dayRisk: DayRisk | undefined;
   let dayForecast: DayForecast | undefined;
@@ -76,6 +82,29 @@ export default function DayDetailScreen() {
   } catch (e) {
     console.error("Failed to parse params:", e);
   }
+
+  const handleAskAI = () => {
+    if (!dayRisk) return;
+
+    router.push({
+      pathname: "/report/chat",
+      params: {
+        date: formatDate(params.date),
+        destination: destination?.displayName || "Unknown",
+        riskLevel: dayRisk.riskLevel,
+        advice: dayRisk.advice,
+        rationale: dayRisk.rationale,
+        forecastJson: dayForecast
+          ? JSON.stringify({
+              precipProbDay: dayForecast.precipProbabilityDay,
+              precipProbNight: dayForecast.precipProbabilityNight,
+              tempMin: dayForecast.tempMinC,
+              tempMax: dayForecast.tempMaxC,
+            })
+          : "",
+      },
+    });
+  };
 
   if (!dayRisk) {
     return (
@@ -205,6 +234,18 @@ export default function DayDetailScreen() {
             />
           </InfoCard>
         )}
+
+        {/* Ask AI Button */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.askAiButton,
+            pressed && styles.askAiButtonPressed,
+          ]}
+          onPress={handleAskAI}
+        >
+          <Text style={styles.askAiIcon}>💬</Text>
+          <Text style={styles.askAiText}>Ask AI about this day</Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
@@ -335,5 +376,27 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "rgba(255,255,255,0.1)",
     marginVertical: 8,
+  },
+  askAiButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3b82f6",
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 24,
+    gap: 8,
+  },
+  askAiButtonPressed: {
+    backgroundColor: "#2563eb",
+  },
+  askAiIcon: {
+    fontSize: 20,
+  },
+  askAiText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

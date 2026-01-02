@@ -39,6 +39,18 @@ export default function RootLayout() {
             headerShadowVisible: false,
           }}
         />
+        <Stack.Screen
+          name="report/chat"
+          options={{
+            headerShown: true,
+            headerTitle: "Ask AI",
+            headerStyle: { backgroundColor: "#0f1c2e" },
+            headerTintColor: "white",
+            headerTitleStyle: { fontWeight: "600" },
+            headerBackTitle: "",
+            headerShadowVisible: false,
+          }}
+        />
       </Stack>
     </SafeAreaProvider>
   );
