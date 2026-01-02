@@ -65,6 +65,13 @@ export const SHADOWS = {
     shadowRadius: 8,
     elevation: 4,
   },
+  tabBar: {
+    shadowColor: "#8b7aa0",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
 };
 
 export const GLASS_STYLE = {

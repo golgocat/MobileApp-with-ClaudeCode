@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   Pressable,
   StyleSheet,
   ActivityIndicator,
@@ -14,6 +14,7 @@ import { getDestination } from "../../constants/destinations";
 import { DestinationId } from "../../types/travel.types";
 import { formatDate } from "../../utils/dateRange";
 import { getHourlyForecast12 } from "../../services/forecastService";
+import { computeDaySummaryFacts, generateDaySummary, DaySummaryFacts } from "../../services/gemini/summaryService";
 import { COLORS, GRADIENTS, SHADOWS } from "../../constants/theme";
 
 const RISK_COLORS: Record<DayRiskLevel, string> = {
@@ -86,35 +87,215 @@ function GlassCard({
   );
 }
 
-function HourlyTimeline({ hourlyData }: { hourlyData: HourlyForecast[] }) {
+// AI Summary Section Component
+function AISummarySection({
+  facts,
+  onRetry,
+}: {
+  facts: DaySummaryFacts | null;
+  onRetry: () => void;
+}) {
+  const [summary, setSummary] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSummary = useCallback(async () => {
+    if (!facts) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await generateDaySummary(facts);
+      setSummary(result);
+    } catch (e) {
+      console.error("AI Summary error:", e);
+      setError(e instanceof Error ? e.message : "Failed to generate summary");
+    } finally {
+      setLoading(false);
+    }
+  }, [facts]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
+
+  const handleRetry = () => {
+    fetchSummary();
+    onRetry();
+  };
+
+  if (!facts) {
+    return null;
+  }
+
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={styles.hourlyScroll}
-      contentContainerStyle={styles.hourlyContent}
-    >
-      {hourlyData.map((hour, index) => (
-        <View key={index} style={styles.hourlyItem}>
-          <Text style={styles.hourlyTime}>{hour.localTime}</Text>
-          <Text style={styles.hourlyTemp}>{Math.round(hour.temperature)}°</Text>
-          <View style={styles.hourlyRainBarContainer}>
-            <View
-              style={[
-                styles.hourlyRainFill,
-                {
-                  height: `${Math.max(10, hour.precipProbability)}%`,
-                  backgroundColor: hour.precipProbability > 50 ? COLORS.accentBlue : "rgba(74, 144, 217, 0.5)",
-                },
-              ]}
-            />
-          </View>
-          <Text style={styles.hourlyRainText}>
-            {hour.precipProbability > 0 ? `${hour.precipProbability}%` : "-"}
-          </Text>
+    <GlassCard title="AI Weather Summary" emoji="🤖">
+      {loading ? (
+        <View style={styles.summaryLoading}>
+          <ActivityIndicator size="small" color={COLORS.accentBlue} />
+          <Text style={styles.summaryLoadingText}>Generating summary...</Text>
         </View>
-      ))}
-    </ScrollView>
+      ) : error ? (
+        <View style={styles.summaryError}>
+          <Text style={styles.summaryErrorText}>{error}</Text>
+          <Pressable style={styles.retryButton} onPress={handleRetry}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : summary ? (
+        <Text style={styles.summaryText}>{summary}</Text>
+      ) : (
+        <Text style={styles.noDataText}>No summary available</Text>
+      )}
+    </GlassCard>
+  );
+}
+
+// Stats Row Component
+function StatsRow({
+  hourlyData,
+  dayForecast,
+}: {
+  hourlyData: HourlyForecast[];
+  dayForecast: DayForecast | undefined;
+}) {
+  // Calculate peak rain hour
+  let peakRainHour: string | null = null;
+  let peakRainProbability = 0;
+
+  if (hourlyData.length > 0) {
+    const maxPrecipHour = hourlyData.reduce((max, h) =>
+      h.precipProbability > (max?.precipProbability ?? 0) ? h : max
+    , hourlyData[0]);
+
+    if (maxPrecipHour.precipProbability > 0) {
+      peakRainHour = maxPrecipHour.localTime;
+      peakRainProbability = maxPrecipHour.precipProbability;
+    }
+  }
+
+  // Calculate rain window
+  const rainyHours = hourlyData.filter(h => h.precipProbability >= 30);
+  let rainWindow: string | null = null;
+  if (rainyHours.length >= 2) {
+    rainWindow = `${rainyHours[0].localTime} - ${rainyHours[rainyHours.length - 1].localTime}`;
+  } else if (rainyHours.length === 1) {
+    rainWindow = `Around ${rainyHours[0].localTime}`;
+  }
+
+  // Calculate total precipitation
+  const totalPrecipMm = dayForecast
+    ? (dayForecast.precipAmountMmDay ?? 0) + (dayForecast.precipAmountMmNight ?? 0)
+    : 0;
+
+  return (
+    <View style={styles.statsRow}>
+      <View style={styles.statItem}>
+        <Text style={styles.statLabel}>Peak Rain</Text>
+        <Text style={styles.statValue}>
+          {peakRainHour ? `${peakRainHour}` : "None"}
+        </Text>
+        {peakRainProbability > 0 && (
+          <Text style={styles.statSubValue}>{peakRainProbability}%</Text>
+        )}
+      </View>
+      <View style={styles.statDivider} />
+      <View style={styles.statItem}>
+        <Text style={styles.statLabel}>Rain Window</Text>
+        <Text style={styles.statValue}>
+          {rainWindow || "No rain expected"}
+        </Text>
+      </View>
+      <View style={styles.statDivider} />
+      <View style={styles.statItem}>
+        <Text style={styles.statLabel}>Total Rain</Text>
+        <Text style={styles.statValue}>
+          {totalPrecipMm > 0 ? `${totalPrecipMm.toFixed(1)} mm` : "0 mm"}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// Vertical Hourly Row Component
+function HourlyRow({ hour }: { hour: HourlyForecast }) {
+  const precipColor = hour.precipProbability > 50
+    ? COLORS.accentBlue
+    : hour.precipProbability > 20
+      ? "rgba(74, 144, 217, 0.7)"
+      : COLORS.textMuted;
+
+  return (
+    <View style={styles.hourlyRow}>
+      <Text style={styles.hourlyRowTime}>{hour.localTime}</Text>
+      <View style={styles.hourlyRowTemp}>
+        <Text style={styles.hourlyRowTempText}>{Math.round(hour.temperature)}°C</Text>
+      </View>
+      <View style={styles.hourlyRowPrecip}>
+        <View style={styles.hourlyRowPrecipBarBg}>
+          <View
+            style={[
+              styles.hourlyRowPrecipBar,
+              {
+                width: `${Math.max(5, hour.precipProbability)}%`,
+                backgroundColor: precipColor,
+              }
+            ]}
+          />
+        </View>
+        <Text style={[styles.hourlyRowPrecipText, { color: precipColor }]}>
+          {hour.precipProbability}%
+        </Text>
+      </View>
+      <Text style={styles.hourlyRowCondition}>{hour.iconPhrase}</Text>
+    </View>
+  );
+}
+
+// Vertical Hourly Timeline Component
+function VerticalHourlyTimeline({
+  hourlyData,
+  loading
+}: {
+  hourlyData: HourlyForecast[];
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <View style={styles.hourlyLoader}>
+        <ActivityIndicator size="small" color={COLORS.accentBlue} />
+        <Text style={styles.hourlyLoaderText}>Loading hourly data...</Text>
+      </View>
+    );
+  }
+
+  if (hourlyData.length === 0) {
+    return (
+      <Text style={styles.noDataText}>Hourly data not available</Text>
+    );
+  }
+
+  return (
+    <View style={styles.verticalTimeline}>
+      {/* Header Row */}
+      <View style={styles.hourlyHeaderRow}>
+        <Text style={[styles.hourlyHeaderCell, styles.hourlyTimeCol]}>Time</Text>
+        <Text style={[styles.hourlyHeaderCell, styles.hourlyTempCol]}>Temp</Text>
+        <Text style={[styles.hourlyHeaderCell, styles.hourlyPrecipCol]}>Rain %</Text>
+        <Text style={[styles.hourlyHeaderCell, styles.hourlyConditionCol]}>Condition</Text>
+      </View>
+      {/* Data Rows */}
+      <FlatList
+        data={hourlyData}
+        keyExtractor={(item, index) => `${item.dateTime}-${index}`}
+        renderItem={({ item }) => <HourlyRow hour={item} />}
+        scrollEnabled={false}
+      />
+    </View>
   );
 }
 
@@ -137,6 +318,7 @@ export default function DayDetailScreen() {
 
   const [hourlyData, setHourlyData] = useState<HourlyForecast[]>([]);
   const [hourlyLoading, setHourlyLoading] = useState(true);
+  const [summaryFacts, setSummaryFacts] = useState<DaySummaryFacts | null>(null);
 
   const destination = getDestination(params.destinationId as DestinationId);
 
@@ -153,13 +335,24 @@ export default function DayDetailScreen() {
     console.error("Failed to parse params:", e);
   }
 
-  // Fetch hourly forecast
+  // Fetch hourly forecast and compute summary facts
   useEffect(() => {
     async function fetchHourly() {
       if (!destination) return;
       try {
         const data = await getHourlyForecast12(destination.accuweatherLocationKey);
         setHourlyData(data);
+
+        // Compute summary facts for AI
+        if (data.length > 0) {
+          const facts = computeDaySummaryFacts(
+            params.date,
+            destination.displayName,
+            data,
+            dayForecast
+          );
+          setSummaryFacts(facts);
+        }
       } catch (e) {
         console.warn("Failed to fetch hourly forecast:", e);
       } finally {
@@ -167,7 +360,7 @@ export default function DayDetailScreen() {
       }
     }
     fetchHourly();
-  }, [destination?.accuweatherLocationKey]);
+  }, [destination?.accuweatherLocationKey, params.date]);
 
   const handleAskAI = () => {
     if (!dayRisk) return;
@@ -191,6 +384,11 @@ export default function DayDetailScreen() {
       },
     });
   };
+
+  // Callback for AI summary retry
+  const handleSummaryRetry = useCallback(() => {
+    // Summary component handles its own retry logic
+  }, []);
 
   // Calculate total rainfall for the day
   const totalRainfall =
@@ -218,84 +416,110 @@ export default function DayDetailScreen() {
     );
   }
 
-  return (
-    <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
-      <ScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Date Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerEmoji}>
-            {RISK_EMOJIS[dayRisk.riskLevel]}
-          </Text>
-          <Text style={styles.headerDate}>{formatDate(params.date)}</Text>
-          <View
-            style={[
-              styles.riskBadge,
-              { backgroundColor: RISK_BG_COLORS[dayRisk.riskLevel] },
-            ]}
-          >
-            <Text style={[styles.riskBadgeText, { color: RISK_COLORS[dayRisk.riskLevel] }]}>
-              {dayRisk.riskLevel} RISK
-            </Text>
-          </View>
-          <Text style={styles.confidence}>
-            {Math.round(dayRisk.confidence * 100)}% Confidence
-          </Text>
-        </View>
+  // Prepare list data for FlatList
+  const listData = [
+    { type: "header" as const },
+    { type: "summary" as const },
+    { type: "stats" as const },
+    { type: "hourly" as const },
+    { type: "advice" as const },
+    { type: "analysis" as const },
+    ...(totalRainfall !== null || dayRisk.expectedRainMmRange ? [{ type: "rainfall" as const }] : []),
+    ...(dayRisk.flags && dayRisk.flags.length > 0 ? [{ type: "flags" as const }] : []),
+  ];
 
-        {/* Ask AI Button - at top */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.askAiButton,
-            pressed && styles.askAiButtonPressed,
-          ]}
-          onPress={handleAskAI}
-        >
-          <Text style={styles.askAiIcon}>💬</Text>
-          <Text style={styles.askAiText}>Ask AI about this day</Text>
-        </Pressable>
+  const renderItem = ({ item }: { item: { type: string } }) => {
+    switch (item.type) {
+      case "header":
+        return (
+          <>
+            {/* Date Header with Temperature Range */}
+            <View style={styles.header}>
+              <Text style={styles.headerEmoji}>
+                {RISK_EMOJIS[dayRisk!.riskLevel]}
+              </Text>
+              <Text style={styles.headerDate}>{formatDate(params.date)}</Text>
 
-        {/* Hourly Timeline */}
-        <GlassCard title="Hourly Forecast" emoji="🕐">
-          <Text style={styles.timezoneText}>
-            Local time ({destination?.timezone || "UTC"})
-          </Text>
-          {hourlyLoading ? (
-            <ActivityIndicator size="small" color={COLORS.accentBlue} style={styles.hourlyLoader} />
-          ) : hourlyData.length > 0 ? (
-            <>
-              <View style={styles.hourlyLegend}>
-                <Text style={styles.legendItem}>🌡️ Temp</Text>
-                <Text style={styles.legendItem}>💧 Rain %</Text>
+              {/* Temperature Range in Header */}
+              {dayForecast && (dayForecast.tempMinC !== null || dayForecast.tempMaxC !== null) && (
+                <Text style={styles.headerTempRange}>
+                  {dayForecast.tempMinC?.toFixed(0) ?? "--"}° / {dayForecast.tempMaxC?.toFixed(0) ?? "--"}°C
+                </Text>
+              )}
+
+              <View
+                style={[
+                  styles.riskBadge,
+                  { backgroundColor: RISK_BG_COLORS[dayRisk!.riskLevel] },
+                ]}
+              >
+                <Text style={[styles.riskBadgeText, { color: RISK_COLORS[dayRisk!.riskLevel] }]}>
+                  {dayRisk!.riskLevel} RISK
+                </Text>
               </View>
-              <HourlyTimeline hourlyData={hourlyData} />
-            </>
-          ) : (
-            <Text style={styles.noDataText}>Hourly data not available</Text>
-          )}
-        </GlassCard>
+              <Text style={styles.confidence}>
+                {Math.round(dayRisk!.confidence * 100)}% Confidence
+              </Text>
+            </View>
 
-        {/* Travel Advice with emoji */}
-        <GlassCard title="Travel Advice" emoji={ADVICE_EMOJIS[dayRisk.riskLevel]}>
-          <Text style={styles.adviceText}>{dayRisk.advice}</Text>
-        </GlassCard>
+            {/* Ask AI Button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.askAiButton,
+                pressed && styles.askAiButtonPressed,
+              ]}
+              onPress={handleAskAI}
+            >
+              <Text style={styles.askAiIcon}>💬</Text>
+              <Text style={styles.askAiText}>Ask AI about this day</Text>
+            </Pressable>
+          </>
+        );
 
-        {/* Analysis with bullet points */}
-        <GlassCard title="Analysis" emoji="📊">
-          {rationalePoints.length > 0 ? (
-            rationalePoints.map((point, i) => (
-              <BulletPoint key={i} text={point} />
-            ))
-          ) : (
-            <Text style={styles.rationaleText}>{dayRisk.rationale}</Text>
-          )}
-        </GlassCard>
+      case "summary":
+        return (
+          <AISummarySection facts={summaryFacts} onRetry={handleSummaryRetry} />
+        );
 
-        {/* Expected Rainfall - Total for Day */}
-        {(totalRainfall !== null || dayRisk.expectedRainMmRange) && (
+      case "stats":
+        return (
+          <GlassCard title="Quick Stats" emoji="📊">
+            <StatsRow hourlyData={hourlyData} dayForecast={dayForecast} />
+          </GlassCard>
+        );
+
+      case "hourly":
+        return (
+          <GlassCard title="Hourly Forecast" emoji="🕐">
+            <Text style={styles.timezoneText}>
+              Local time ({destination?.timezone || "UTC"})
+            </Text>
+            <VerticalHourlyTimeline hourlyData={hourlyData} loading={hourlyLoading} />
+          </GlassCard>
+        );
+
+      case "advice":
+        return (
+          <GlassCard title="Travel Advice" emoji={ADVICE_EMOJIS[dayRisk!.riskLevel]}>
+            <Text style={styles.adviceText}>{dayRisk!.advice}</Text>
+          </GlassCard>
+        );
+
+      case "analysis":
+        return (
+          <GlassCard title="Analysis" emoji="📈">
+            {rationalePoints.length > 0 ? (
+              rationalePoints.map((point, i) => (
+                <BulletPoint key={i} text={point} />
+              ))
+            ) : (
+              <Text style={styles.rationaleText}>{dayRisk!.rationale}</Text>
+            )}
+          </GlassCard>
+        );
+
+      case "rainfall":
+        return (
           <GlassCard title="Expected Rainfall" emoji="🌧️">
             {totalRainfall !== null ? (
               <View style={styles.rainfallContainer}>
@@ -304,10 +528,10 @@ export default function DayDetailScreen() {
                 </Text>
                 <Text style={styles.rainfallLabel}>total for the day</Text>
               </View>
-            ) : dayRisk.expectedRainMmRange ? (
+            ) : dayRisk!.expectedRainMmRange ? (
               <View style={styles.rainfallContainer}>
                 <Text style={styles.rainfallTotal}>
-                  {dayRisk.expectedRainMmRange.min} – {dayRisk.expectedRainMmRange.max} mm
+                  {dayRisk!.expectedRainMmRange.min} – {dayRisk!.expectedRainMmRange.max} mm
                 </Text>
                 <Text style={styles.rainfallLabel}>expected range</Text>
               </View>
@@ -315,21 +539,21 @@ export default function DayDetailScreen() {
             {dayForecast && (
               <View style={styles.rainfallBreakdown}>
                 <Text style={styles.breakdownText}>
-                  ☀️ Day: {dayForecast.precipAmountMmDay?.toFixed(1) ?? "0"} mm ({dayForecast.precipProbabilityDay ?? 0}% chance)
+                  Day: {dayForecast.precipAmountMmDay?.toFixed(1) ?? "0"} mm ({dayForecast.precipProbabilityDay ?? 0}% chance)
                 </Text>
                 <Text style={styles.breakdownText}>
-                  🌙 Night: {dayForecast.precipAmountMmNight?.toFixed(1) ?? "0"} mm ({dayForecast.precipProbabilityNight ?? 0}% chance)
+                  Night: {dayForecast.precipAmountMmNight?.toFixed(1) ?? "0"} mm ({dayForecast.precipProbabilityNight ?? 0}% chance)
                 </Text>
               </View>
             )}
           </GlassCard>
-        )}
+        );
 
-        {/* Weather Flags with emoji */}
-        {dayRisk.flags && dayRisk.flags.length > 0 && (
+      case "flags":
+        return (
           <GlassCard title="Weather Alerts" emoji="🚨">
             <View style={styles.flagsContainer}>
-              {dayRisk.flags.map((flag, i) => (
+              {dayRisk!.flags.map((flag, i) => (
                 <View key={i} style={styles.flag}>
                   <Text style={styles.flagEmoji}>{getFlagEmoji(flag)}</Text>
                   <Text style={styles.flagText}>
@@ -339,44 +563,28 @@ export default function DayDetailScreen() {
               ))}
             </View>
           </GlassCard>
-        )}
+        );
 
-        {/* Temperature Range */}
-        {dayForecast && (dayForecast.tempMinC !== null || dayForecast.tempMaxC !== null) && (
-          <GlassCard title="Temperature" emoji="🌡️">
-            <View style={styles.tempContainer}>
-              <View style={styles.tempItem}>
-                <View style={styles.tempIconContainer}>
-                  <Text style={styles.tempEmoji}>❄️</Text>
-                </View>
-                <Text style={styles.tempValue}>
-                  {dayForecast.tempMinC?.toFixed(0) ?? "N/A"}°
-                </Text>
-                <Text style={styles.tempLabel}>Low</Text>
-              </View>
-              <View style={styles.tempDivider} />
-              <View style={styles.tempItem}>
-                <View style={styles.tempIconContainer}>
-                  <Text style={styles.tempEmoji}>🔥</Text>
-                </View>
-                <Text style={styles.tempValue}>
-                  {dayForecast.tempMaxC?.toFixed(0) ?? "N/A"}°
-                </Text>
-                <Text style={styles.tempLabel}>High</Text>
-              </View>
-            </View>
-          </GlassCard>
-        )}
-      </ScrollView>
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
+      <FlatList
+        data={listData}
+        keyExtractor={(item, index) => `${item.type}-${index}`}
+        renderItem={renderItem}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      />
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  flex: {
     flex: 1,
   },
   scrollContent: {
@@ -410,6 +618,12 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     fontSize: 24,
     fontWeight: "700",
+    marginBottom: 4,
+  },
+  headerTempRange: {
+    color: COLORS.textSecondary,
+    fontSize: 18,
+    fontWeight: "500",
     marginBottom: 12,
   },
   riskBadge: {
@@ -467,62 +681,177 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 12,
   },
+  // AI Summary styles
+  summaryLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    gap: 12,
+  },
+  summaryLoadingText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
+  summaryError: {
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  summaryErrorText: {
+    color: "#ef4444",
+    fontSize: 14,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: COLORS.accentBlue,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  summaryText: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  // Stats Row styles
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statLabel: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  statValue: {
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  statSubValue: {
+    color: COLORS.accentBlue,
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "rgba(0,0,0,0.08)",
+    marginHorizontal: 8,
+  },
+  // Vertical Hourly Timeline styles
+  verticalTimeline: {
+    marginTop: 8,
+  },
+  hourlyHeaderRow: {
+    flexDirection: "row",
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.08)",
+    marginBottom: 8,
+  },
+  hourlyHeaderCell: {
+    color: COLORS.textMuted,
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  hourlyTimeCol: {
+    width: 50,
+  },
+  hourlyTempCol: {
+    width: 50,
+  },
+  hourlyPrecipCol: {
+    flex: 1,
+    marginHorizontal: 8,
+  },
+  hourlyConditionCol: {
+    width: 80,
+    textAlign: "right",
+  },
+  hourlyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.04)",
+  },
+  hourlyRowTime: {
+    width: 50,
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  hourlyRowTemp: {
+    width: 50,
+  },
+  hourlyRowTempText: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  hourlyRowPrecip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 8,
+    gap: 8,
+  },
+  hourlyRowPrecipBarBg: {
+    flex: 1,
+    height: 6,
+    backgroundColor: "rgba(74, 144, 217, 0.15)",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  hourlyRowPrecipBar: {
+    height: "100%",
+    borderRadius: 3,
+  },
+  hourlyRowPrecipText: {
+    width: 32,
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "right",
+  },
+  hourlyRowCondition: {
+    width: 80,
+    color: COLORS.textMuted,
+    fontSize: 11,
+    textAlign: "right",
+  },
+  hourlyLoader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+    gap: 12,
+  },
+  hourlyLoaderText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
   timezoneText: {
     color: COLORS.textMuted,
     fontSize: 11,
     marginBottom: 8,
-  },
-  hourlyScroll: {
-    marginHorizontal: -8,
-  },
-  hourlyContent: {
-    paddingHorizontal: 8,
-    gap: 12,
-  },
-  hourlyItem: {
-    alignItems: "center",
-    width: 48,
-  },
-  hourlyTime: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    marginBottom: 4,
-  },
-  hourlyTemp: {
-    color: COLORS.textPrimary,
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 6,
-  },
-  hourlyRainBarContainer: {
-    width: 24,
-    height: 40,
-    backgroundColor: "rgba(74, 144, 217, 0.1)",
-    borderRadius: 6,
-    overflow: "hidden",
-    justifyContent: "flex-end",
-    marginBottom: 4,
-  },
-  hourlyRainFill: {
-    width: "100%",
-    borderRadius: 6,
-  },
-  hourlyRainText: {
-    color: COLORS.accentBlue,
-    fontSize: 10,
-    fontWeight: "500",
-  },
-  hourlyLegend: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 12,
-  },
-  legendItem: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-  },
-  hourlyLoader: {
-    paddingVertical: 20,
   },
   noDataText: {
     color: COLORS.textMuted,
@@ -603,42 +932,5 @@ const styles = StyleSheet.create({
     color: "#dc2626",
     fontSize: 13,
     fontWeight: "500",
-  },
-  tempContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  tempItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  tempIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  tempEmoji: {
-    fontSize: 24,
-  },
-  tempValue: {
-    color: COLORS.textPrimary,
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  tempLabel: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  tempDivider: {
-    width: 1,
-    height: 80,
-    backgroundColor: "rgba(0,0,0,0.08)",
   },
 });

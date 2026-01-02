@@ -59,7 +59,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 24,
     position: "absolute",
-    elevation: 0,
     ...SHADOWS.tabBar,
   },
   tabItem: {
