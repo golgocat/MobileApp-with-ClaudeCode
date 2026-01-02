@@ -66,14 +66,14 @@ export class WeatherService {
       let url = `${BASE_URL}/locations/v1/cities/search?q=${encodeURIComponent(cityName)}`;
 
       if (ACCUWEATHER_API_KEY.startsWith('zpka_')) {
-        // Use header authentication for zpka_ format keys
-        headers['Authorization'] = `Bearer ${ACCUWEATHER_API_KEY}`;
+        // Use header authentication without Bearer prefix
+        headers['Authorization'] = ACCUWEATHER_API_KEY;
       } else {
         // Use query parameter for traditional keys
         url += `&apikey=${ACCUWEATHER_API_KEY}`;
       }
 
-      console.log('🔍 Searching location:', cityName);
+      console.warn('🔍 Searching location:', cityName);
       const response = await fetchWithTimeout(url, { headers }, 15000);
 
       if (!response.ok) {
@@ -110,15 +110,18 @@ export class WeatherService {
       const headers: HeadersInit = {};
       let url = `${BASE_URL}/currentconditions/v1/${locationKey}?details=true`;
 
+      // Try different authentication methods for zpka_ keys
       if (ACCUWEATHER_API_KEY.startsWith('zpka_')) {
-        // Use header authentication for zpka_ format keys
-        headers['Authorization'] = `Bearer ${ACCUWEATHER_API_KEY}`;
+        // Method 1: Try without Bearer prefix (just the token)
+        headers['Authorization'] = ACCUWEATHER_API_KEY;
+        console.warn('🔐 Using Authorization header (no Bearer):', headers['Authorization'].substring(0, 10) + '...');
       } else {
         // Use query parameter for traditional keys
         url += `&apikey=${ACCUWEATHER_API_KEY}`;
       }
 
-      console.log('🌡️ Fetching current conditions:', url.substring(0, 80) + '...');
+      console.warn('🌡️ Fetching current conditions:', url.substring(0, 80) + '...');
+      console.warn('🌡️ Headers:', JSON.stringify(headers));
       const response = await fetchWithTimeout(url, { headers }, 15000);
 
       if (!response.ok) {
@@ -167,14 +170,14 @@ export class WeatherService {
       let url = `${BASE_URL}/forecasts/v1/daily/${endpoint}/${locationKey}?details=true&metric=true`;
 
       if (ACCUWEATHER_API_KEY.startsWith('zpka_')) {
-        // Use header authentication for zpka_ format keys
-        headers['Authorization'] = `Bearer ${ACCUWEATHER_API_KEY}`;
+        // Use header authentication without Bearer prefix
+        headers['Authorization'] = ACCUWEATHER_API_KEY;
       } else {
         // Use query parameter for traditional keys
         url += `&apikey=${ACCUWEATHER_API_KEY}`;
       }
 
-      console.log('📅 Fetching daily forecast:', endpoint);
+      console.warn('📅 Fetching daily forecast:', endpoint);
       const response = await fetchWithTimeout(url, { headers }, 15000);
 
       if (!response.ok) {
@@ -212,14 +215,14 @@ export class WeatherService {
       let url = `${BASE_URL}/forecasts/v1/hourly/${endpoint}/${locationKey}?details=true&metric=true`;
 
       if (ACCUWEATHER_API_KEY.startsWith('zpka_')) {
-        // Use header authentication for zpka_ format keys
-        headers['Authorization'] = `Bearer ${ACCUWEATHER_API_KEY}`;
+        // Use header authentication without Bearer prefix
+        headers['Authorization'] = ACCUWEATHER_API_KEY;
       } else {
         // Use query parameter for traditional keys
         url += `&apikey=${ACCUWEATHER_API_KEY}`;
       }
 
-      console.log('⏰ Fetching hourly forecast:', endpoint);
+      console.warn('⏰ Fetching hourly forecast:', endpoint);
       const response = await fetchWithTimeout(url, { headers }, 15000);
 
       if (!response.ok) {
