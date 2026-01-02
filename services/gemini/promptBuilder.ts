@@ -1,4 +1,74 @@
 import { DayForecast, Destination, Itinerary } from "../../types/travel.types";
+import { GeminiJsonSchema } from "./geminiService";
+
+// JSON Schema that matches our TravelRiskReportSchema
+// This is passed to Gemini's responseSchema for guaranteed valid JSON
+export const TravelRiskResponseSchema: GeminiJsonSchema = {
+  type: "object",
+  properties: {
+    modelVersion: {
+      type: "string",
+      description: "Version identifier for the model",
+    },
+    timezone: {
+      type: "string",
+      description: "Timezone of the destination",
+    },
+    days: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          date: {
+            type: "string",
+            description: "Date in YYYY-MM-DD format",
+          },
+          riskLevel: {
+            type: "string",
+            enum: ["LOW", "MEDIUM", "HIGH", "EXTREME"],
+            description: "Risk level for the day",
+          },
+          expectedRainMmRange: {
+            type: "object",
+            nullable: true,
+            properties: {
+              min: {
+                type: "number",
+                description: "Minimum expected rainfall in mm",
+              },
+              max: {
+                type: "number",
+                description: "Maximum expected rainfall in mm",
+              },
+            },
+            required: ["min", "max"],
+          },
+          confidence: {
+            type: "number",
+            description: "Confidence level between 0 and 1",
+          },
+          advice: {
+            type: "string",
+            description: "Short practical travel advice",
+          },
+          rationale: {
+            type: "string",
+            description: "Brief explanation of the risk assessment",
+          },
+          flags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+            description: "Weather warning flags like monsoon_season, flash_flood_risk",
+          },
+        },
+        required: ["date", "riskLevel", "confidence", "advice", "rationale", "flags"],
+      },
+    },
+  },
+  required: ["modelVersion", "timezone", "days"],
+};
 
 export function buildRainRiskPrompt(args: {
   destination: Destination;
@@ -7,42 +77,19 @@ export function buildRainRiskPrompt(args: {
 }) {
   const { destination, itinerary, forecasts } = args;
 
-  const instruction = `You are a travel rain-risk analyst. Analyze the weather forecast and return a JSON risk assessment.
+  // Simplified instruction - schema enforcement handles JSON structure
+  const instruction = `You are a travel rain-risk analyst. Analyze the weather forecast data for ${destination.displayName} from ${itinerary.startDate} to ${itinerary.endDate}.
 
-IMPORTANT: Return ONLY valid JSON. No markdown, no code fences, no extra text.
+For each day in the trip range, assess the rain risk based on precipitation probability:
+- LOW: <20% chance of rain
+- MEDIUM: 20-50% chance
+- HIGH: 50-80% chance
+- EXTREME: >80% chance
 
-Analyze dates from ${itinerary.startDate} to ${itinerary.endDate} for ${destination.displayName}.
-
-Risk levels based on precipitation probability:
-- LOW: <20%
-- MEDIUM: 20-50%
-- HIGH: 50-80%
-- EXTREME: >80%
-
-Return this exact JSON structure:
-{
-  "modelVersion": "travel_rain_risk_v1",
-  "timezone": "${destination.timezone}",
-  "days": [
-    {
-      "date": "YYYY-MM-DD",
-      "riskLevel": "LOW",
-      "expectedRainMmRange": {"min": 0, "max": 0},
-      "confidence": 0.95,
-      "advice": "Short practical advice",
-      "rationale": "Brief explanation",
-      "flags": []
-    }
-  ]
-}
-
-Rules:
-- One entry per day in the trip range
-- riskLevel must be: LOW, MEDIUM, HIGH, or EXTREME
-- confidence: number between 0 and 1
-- expectedRainMmRange: object with min/max or null if unknown
-- flags: array of strings like "monsoon_season", "flash_flood_risk"
-- Keep advice and rationale concise`;
+Set confidence based on forecast reliability (typically 0.7-0.95).
+Include relevant flags like "monsoon_season" or "flash_flood_risk" when applicable.
+Provide concise, practical travel advice and rationale for each day.
+Set expectedRainMmRange to null if precipitation amount data is unavailable.`;
 
   const input = {
     destination: {
@@ -65,5 +112,9 @@ Rules:
     })),
   };
 
-  return { instruction, input };
+  return {
+    instruction,
+    input,
+    responseSchema: TravelRiskResponseSchema,
+  };
 }

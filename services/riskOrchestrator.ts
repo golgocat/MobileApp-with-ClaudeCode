@@ -3,7 +3,6 @@ import {
   buildRainRiskPrompt,
   generateGeminiContent,
   parseAndValidateReport,
-  buildRepairPrompt,
 } from "./gemini";
 import { Destination, Itinerary, TravelRiskReport, DayForecast } from "../types/travel.types";
 import { inRange } from "../utils/dateRange";
@@ -33,55 +32,31 @@ export async function generateTravelRiskReport(args: {
     );
   }
 
-  // Build prompt for Gemini
-  const { instruction, input } = buildRainRiskPrompt({
+  // Build prompt with JSON schema for Gemini
+  const { instruction, input, responseSchema } = buildRainRiskPrompt({
     destination,
     itinerary,
     forecasts: tripForecasts,
   });
 
-  // Attempt 1
-  const out1 = await generateGeminiContent({ instruction, input });
+  // Generate with schema enforcement - Gemini will return valid JSON
+  const rawOutput = await generateGeminiContent({
+    instruction,
+    input,
+    responseSchema,
+  });
 
-  try {
-    const validated = parseAndValidateReport(out1);
-    return {
-      forecastDays: tripForecasts,
-      report: {
-        itineraryId: itinerary.id,
-        generatedAt: new Date().toISOString(),
-        modelVersion: validated.modelVersion,
-        timezone: validated.timezone,
-        days: validated.days,
-      },
-    };
-  } catch (parseError) {
-    console.warn("First Gemini response failed validation, attempting repair:", parseError);
+  // Parse and validate (should always succeed with schema enforcement)
+  const validated = parseAndValidateReport(rawOutput);
 
-    // Attempt 2 with repair prompt
-    try {
-      const repairInstruction = buildRepairPrompt(out1);
-      const out2 = await generateGeminiContent({
-        instruction: repairInstruction,
-        input: {},
-      });
-      const validated2 = parseAndValidateReport(out2);
-
-      return {
-        forecastDays: tripForecasts,
-        report: {
-          itineraryId: itinerary.id,
-          generatedAt: new Date().toISOString(),
-          modelVersion: validated2.modelVersion,
-          timezone: validated2.timezone,
-          days: validated2.days,
-        },
-      };
-    } catch (repairError) {
-      console.error("Repair attempt also failed:", repairError);
-      throw new Error(
-        "Failed to generate a valid risk report. Please try again."
-      );
-    }
-  }
+  return {
+    forecastDays: tripForecasts,
+    report: {
+      itineraryId: itinerary.id,
+      generatedAt: new Date().toISOString(),
+      modelVersion: validated.modelVersion,
+      timezone: validated.timezone,
+      days: validated.days,
+    },
+  };
 }

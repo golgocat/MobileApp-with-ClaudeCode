@@ -8,31 +8,21 @@ interface GeminiGenerateContentResponse {
   }>;
 }
 
-/**
- * Extract JSON from a string that may contain markdown code blocks
- */
-function extractJson(text: string): string {
-  // Remove markdown code blocks if present
-  let cleaned = text.trim();
-
-  // Handle ```json ... ``` or ``` ... ```
-  const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    cleaned = codeBlockMatch[1].trim();
-  }
-
-  // Try to find JSON object or array
-  const jsonMatch = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-  if (jsonMatch) {
-    cleaned = jsonMatch[1];
-  }
-
-  return cleaned;
-}
+// JSON Schema type for Gemini's responseSchema
+export type GeminiJsonSchema = {
+  type: string;
+  properties?: Record<string, GeminiJsonSchema>;
+  items?: GeminiJsonSchema;
+  enum?: string[];
+  required?: string[];
+  nullable?: boolean;
+  description?: string;
+};
 
 export async function generateGeminiContent(args: {
   instruction: string;
   input: unknown;
+  responseSchema?: GeminiJsonSchema;
 }): Promise<string> {
   const apiKey = ENV.GEMINI_API_KEY;
   const model = ENV.GEMINI_MODEL;
@@ -42,6 +32,18 @@ export async function generateGeminiContent(args: {
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  // Build generation config with schema enforcement if provided
+  const generationConfig: Record<string, unknown> = {
+    temperature: 0.2,
+    maxOutputTokens: 4096,
+  };
+
+  // When responseSchema is provided, Gemini enforces the exact JSON structure
+  if (args.responseSchema) {
+    generationConfig.responseMimeType = "application/json";
+    generationConfig.responseSchema = args.responseSchema;
+  }
 
   const body = {
     contents: [
@@ -53,11 +55,7 @@ export async function generateGeminiContent(args: {
         ],
       },
     ],
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 4096,
-      responseMimeType: "application/json",
-    },
+    generationConfig,
   };
 
   const res = await fetch(url, {
@@ -80,6 +78,5 @@ export async function generateGeminiContent(args: {
     throw new Error("Gemini returned empty content");
   }
 
-  // Extract and return clean JSON
-  return extractJson(text);
+  return text;
 }
