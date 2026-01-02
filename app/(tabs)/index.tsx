@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   attribution: {
     alignItems: "center",
-    paddingBottom: 32,
+    paddingBottom: 120,
   },
   attributionText: {
     color: COLORS.textMuted,
