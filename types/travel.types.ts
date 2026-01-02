@@ -18,6 +18,15 @@ export interface Itinerary {
   createdAt: string; // ISO
 }
 
+export interface HourlyForecast {
+  dateTime: string; // ISO datetime
+  localTime: string; // HH:mm format in local timezone
+  temperature: number; // Celsius
+  precipProbability: number; // 0-100
+  iconPhrase: string;
+  icon: number;
+}
+
 export interface DayForecast {
   date: string; // YYYY-MM-DD in destination timezone
   precipProbabilityDay: number | null;   // 0-100
@@ -26,6 +35,8 @@ export interface DayForecast {
   precipAmountMmNight: number | null;
   tempMinC: number | null;
   tempMaxC: number | null;
+  iconPhraseDay?: string;
+  iconPhraseNight?: string;
   raw?: unknown;
 }
 

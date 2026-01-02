@@ -1,5 +1,5 @@
 import { ENV } from "../config/env";
-import { DayForecast } from "../types/travel.types";
+import { DayForecast, HourlyForecast } from "../types/travel.types";
 
 const BASE_URL = "https://dataservice.accuweather.com";
 
@@ -113,7 +113,48 @@ function mapForecasts(json: AccuDailyResponse): DayForecast[] {
       precipAmountMmNight: nightLiquid != null ? toMm(nightLiquid, nightLiquidUnit) : null,
       tempMinC: min?.Value != null ? toC(min.Value, min.Unit) : null,
       tempMaxC: max?.Value != null ? toC(max.Value, max.Unit) : null,
+      iconPhraseDay: d.Day?.IconPhrase,
+      iconPhraseNight: d.Night?.IconPhrase,
       raw: d,
+    };
+  });
+}
+
+// Hourly forecast types
+interface AccuHourlyItem {
+  DateTime: string;
+  EpochDateTime: number;
+  Temperature: { Value: number; Unit: string };
+  PrecipitationProbability: number;
+  IconPhrase: string;
+  WeatherIcon: number;
+}
+
+export async function getHourlyForecast12(locationKey: string): Promise<HourlyForecast[]> {
+  const apiKey = ENV.ACCUWEATHER_API_KEY;
+
+  const url = `${BASE_URL}/forecasts/v1/hourly/12hour/${locationKey}?apikey=${encodeURIComponent(apiKey)}&metric=true&details=true`;
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`AccuWeather hourly error ${res.status}: ${text}`);
+  }
+
+  const json = (await res.json()) as AccuHourlyItem[];
+
+  return json.map((h) => {
+    // Extract local time from DateTime (format: "2024-01-03T14:00:00+04:00")
+    const dateTime = new Date(h.DateTime);
+    const localTime = h.DateTime.slice(11, 16); // Extract HH:mm
+
+    return {
+      dateTime: h.DateTime,
+      localTime,
+      temperature: toC(h.Temperature.Value, h.Temperature.Unit),
+      precipProbability: h.PrecipitationProbability ?? 0,
+      iconPhrase: h.IconPhrase,
+      icon: h.WeatherIcon,
     };
   });
 }
