@@ -10,9 +10,11 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import { useChat } from "../../hooks/useChat";
 import { DayContext, ChatMessage } from "../../services/gemini/chatService";
+import { COLORS, GRADIENTS, SHADOWS } from "../../constants/theme";
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
@@ -119,7 +121,7 @@ export default function ChatScreen() {
   }, [messages]);
 
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -154,7 +156,7 @@ export default function ChatScreen() {
               ))}
               {isLoading && (
                 <View style={styles.loadingBubble}>
-                  <ActivityIndicator size="small" color="#60a5fa" />
+                  <ActivityIndicator size="small" color={COLORS.accentBlue} />
                   <Text style={styles.loadingText}>Thinking...</Text>
                 </View>
               )}
@@ -176,7 +178,7 @@ export default function ChatScreen() {
             value={inputText}
             onChangeText={setInputText}
             placeholder="Ask a question..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor={COLORS.textMuted}
             multiline
             maxLength={500}
             onSubmitEditing={handleSend}
@@ -194,14 +196,13 @@ export default function ChatScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1e3a5f",
   },
   flex: {
     flex: 1,
@@ -210,15 +211,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   headerTitle: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },
   headerSubtitle: {
-    color: "rgba(255,255,255,0.6)",
+    color: COLORS.textSecondary,
     fontSize: 13,
     marginTop: 2,
   },
@@ -235,17 +236,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyIcon: {
-    fontSize: 48,
+    fontSize: 56,
     marginBottom: 16,
   },
   emptyTitle: {
-    color: "white",
-    fontSize: 20,
+    color: COLORS.textPrimary,
+    fontSize: 22,
     fontWeight: "600",
     marginBottom: 8,
   },
   emptySubtitle: {
-    color: "rgba(255,255,255,0.6)",
+    color: COLORS.textSecondary,
     fontSize: 14,
     textAlign: "center",
     marginBottom: 24,
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   suggestionsTitle: {
-    color: "rgba(255,255,255,0.5)",
+    color: COLORS.textMuted,
     fontSize: 12,
     marginBottom: 12,
     textAlign: "center",
@@ -266,66 +267,77 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   suggestionButton: {
-    backgroundColor: "rgba(59, 130, 246, 0.2)",
+    backgroundColor: COLORS.glassBackground,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(59, 130, 246, 0.3)",
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
+    ...SHADOWS.cardSmall,
   },
   suggestionText: {
-    color: "#60a5fa",
+    color: COLORS.accentBlue,
     fontSize: 13,
+    fontWeight: "500",
   },
   messageBubble: {
     maxWidth: "80%",
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 8,
+    padding: 14,
+    borderRadius: 18,
+    marginBottom: 10,
   },
   userBubble: {
     alignSelf: "flex-end",
-    backgroundColor: "#3b82f6",
+    backgroundColor: COLORS.accentBlue,
     borderBottomRightRadius: 4,
+    ...SHADOWS.cardSmall,
   },
   assistantBubble: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: COLORS.glassBackground,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
     borderBottomLeftRadius: 4,
+    ...SHADOWS.cardSmall,
   },
   messageText: {
     fontSize: 15,
-    lineHeight: 21,
+    lineHeight: 22,
   },
   userText: {
     color: "white",
   },
   assistantText: {
-    color: "rgba(255,255,255,0.9)",
+    color: COLORS.textPrimary,
   },
   loadingBubble: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    padding: 12,
-    borderRadius: 16,
+    backgroundColor: COLORS.glassBackground,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
+    padding: 14,
+    borderRadius: 18,
     borderBottomLeftRadius: 4,
     gap: 8,
+    ...SHADOWS.cardSmall,
   },
   loadingText: {
-    color: "rgba(255,255,255,0.6)",
+    color: COLORS.textSecondary,
     fontSize: 14,
   },
   errorContainer: {
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
     padding: 12,
     marginHorizontal: 16,
     marginBottom: 8,
-    borderRadius: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.2)",
   },
   errorText: {
-    color: "#fca5a5",
+    color: "#dc2626",
     fontSize: 13,
   },
   inputContainer: {
@@ -336,34 +348,37 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
-    backgroundColor: "#1e3a5f",
+    borderTopColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "rgba(255,255,255,0.5)",
   },
   input: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: COLORS.glassBackground,
     borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
     paddingHorizontal: 16,
     paddingVertical: 10,
     paddingRight: 16,
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 15,
     maxHeight: 100,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#3b82f6",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.accentBlue,
     alignItems: "center",
     justifyContent: "center",
+    ...SHADOWS.cardSmall,
   },
   sendButtonDisabled: {
-    backgroundColor: "rgba(59, 130, 246, 0.3)",
+    backgroundColor: "rgba(74, 144, 217, 0.4)",
   },
   sendButtonText: {
     color: "white",
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
   },
 });

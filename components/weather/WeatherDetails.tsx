@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { CurrentConditions } from '../../types/weather.types';
+import { View, Text, StyleSheet } from "react-native";
+import { CurrentConditions } from "../../types/weather.types";
+import { COLORS, SHADOWS } from "../../constants/theme";
 
 interface WeatherDetailsProps {
   current: CurrentConditions;
@@ -14,11 +15,13 @@ interface DetailItemProps {
 function DetailItem({ label, value, icon }: DetailItemProps) {
   return (
     <View style={styles.detailItem}>
-      <View style={styles.labelRow}>
+      <View style={styles.iconContainer}>
         <Text style={styles.icon}>{icon}</Text>
-        <Text style={styles.label}>{label}</Text>
       </View>
-      <Text style={styles.value}>{value}</Text>
+      <View style={styles.textContainer}>
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.value}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -34,34 +37,24 @@ export function WeatherDetails({ current }: WeatherDetailsProps) {
       <Text style={styles.title}>Weather Details</Text>
       <View style={styles.grid}>
         <DetailItem
-          label="Humidity"
+          label="HUMIDITY"
           value={`${current.RelativeHumidity}%`}
           icon="💧"
         />
         <DetailItem
-          label="Wind"
+          label="WIND"
           value={`${windSpeed} km/h ${windDirection}`}
           icon="💨"
         />
         <DetailItem
-          label="Visibility"
+          label="VISIBILITY"
           value={`${visibility} km`}
           icon="👁️"
         />
         <DetailItem
-          label="Pressure"
+          label="PRESSURE"
           value={`${pressure} mb`}
           icon="🌡️"
-        />
-        <DetailItem
-          label="UV Index"
-          value={`${current.UVIndex} ${current.UVIndexText}`}
-          icon="☀️"
-        />
-        <DetailItem
-          label="Cloud Cover"
-          value={`${current.CloudCover}%`}
-          icon="☁️"
         />
       </View>
     </View>
@@ -70,46 +63,58 @@ export function WeatherDetails({ current }: WeatherDetailsProps) {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 24,
     marginHorizontal: 16,
-    marginBottom: 32,
+    marginTop: 16,
+    marginBottom: 24,
   },
   title: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    paddingHorizontal: 4,
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
   },
   detailItem: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16,
+    backgroundColor: COLORS.glassBackground,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
     padding: 16,
-    width: '48%',
-    margin: '1%',
+    width: "48%",
+    flexGrow: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    ...SHADOWS.cardSmall,
   },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
   icon: {
-    fontSize: 20,
-    marginRight: 8,
+    fontSize: 22,
+  },
+  textContainer: {
+    flex: 1,
   },
   label: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    color: COLORS.textMuted,
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
   value: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: '600',
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { Text, View, StyleSheet } from "react-native";
+import { COLORS, SHADOWS } from "../../constants/theme";
 
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons: Record<string, string> = {
@@ -20,8 +21,8 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: "#ffffff",
-        tabBarInactiveTintColor: "rgba(255,255,255,0.5)",
+        tabBarActiveTintColor: COLORS.textPrimary,
+        tabBarInactiveTintColor: COLORS.textMuted,
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: styles.tabItem,
       }}
@@ -50,14 +51,16 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: "#0f1c2e",
-    borderTopWidth: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    borderTopWidth: 1,
+    borderTopColor: COLORS.glassBorder,
     height: 90,
     paddingBottom: 24,
     paddingTop: 12,
     paddingHorizontal: 24,
+    position: "absolute",
     elevation: 0,
-    shadowOpacity: 0,
+    ...SHADOWS.tabBar,
   },
   tabItem: {
     paddingTop: 4,
@@ -70,15 +73,15 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: "transparent",
   },
   iconContainerFocused: {
-    backgroundColor: "rgba(59, 130, 246, 0.2)",
+    backgroundColor: "rgba(74, 144, 217, 0.15)",
   },
   icon: {
-    fontSize: 26,
+    fontSize: 28,
   },
 });

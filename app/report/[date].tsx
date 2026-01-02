@@ -7,18 +7,27 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { DayRisk, DayForecast, TravelRiskReport, DayRiskLevel, HourlyForecast } from "../../types/travel.types";
 import { getDestination } from "../../constants/destinations";
 import { DestinationId } from "../../types/travel.types";
 import { formatDate } from "../../utils/dateRange";
 import { getHourlyForecast12 } from "../../services/forecastService";
+import { COLORS, GRADIENTS, SHADOWS } from "../../constants/theme";
 
 const RISK_COLORS: Record<DayRiskLevel, string> = {
   LOW: "#22c55e",
   MEDIUM: "#f59e0b",
   HIGH: "#ef4444",
   EXTREME: "#dc2626",
+};
+
+const RISK_BG_COLORS: Record<DayRiskLevel, string> = {
+  LOW: "rgba(34, 197, 94, 0.15)",
+  MEDIUM: "rgba(245, 158, 11, 0.15)",
+  HIGH: "rgba(239, 68, 68, 0.15)",
+  EXTREME: "rgba(220, 38, 38, 0.2)",
 };
 
 const RISK_EMOJIS: Record<DayRiskLevel, string> = {
@@ -58,7 +67,7 @@ function getFlagEmoji(flag: string): string {
   return FLAG_EMOJIS[key] || FLAG_EMOJIS.default;
 }
 
-function InfoCard({
+function GlassCard({
   title,
   emoji,
   children,
@@ -68,8 +77,8 @@ function InfoCard({
   children: React.ReactNode;
 }) {
   return (
-    <View style={styles.infoCard}>
-      <Text style={styles.infoCardTitle}>
+    <View style={styles.glassCard}>
+      <Text style={styles.cardTitle}>
         {emoji && `${emoji} `}{title}
       </Text>
       {children}
@@ -95,7 +104,7 @@ function HourlyTimeline({ hourlyData }: { hourlyData: HourlyForecast[] }) {
                 styles.hourlyRainFill,
                 {
                   height: `${Math.max(10, hour.precipProbability)}%`,
-                  backgroundColor: hour.precipProbability > 50 ? "#60a5fa" : "rgba(96, 165, 250, 0.5)",
+                  backgroundColor: hour.precipProbability > 50 ? COLORS.accentBlue : "rgba(74, 144, 217, 0.5)",
                 },
               ]}
             />
@@ -200,20 +209,21 @@ export default function DayDetailScreen() {
 
   if (!dayRisk) {
     return (
-      <View style={styles.container}>
+      <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorEmoji}>❓</Text>
           <Text style={styles.errorText}>No data available for this date</Text>
         </View>
-      </View>
+      </LinearGradient>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
       <ScrollView
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
         {/* Date Header */}
         <View style={styles.header}>
@@ -224,10 +234,12 @@ export default function DayDetailScreen() {
           <View
             style={[
               styles.riskBadge,
-              { backgroundColor: RISK_COLORS[dayRisk.riskLevel] },
+              { backgroundColor: RISK_BG_COLORS[dayRisk.riskLevel] },
             ]}
           >
-            <Text style={styles.riskBadgeText}>{dayRisk.riskLevel} RISK</Text>
+            <Text style={[styles.riskBadgeText, { color: RISK_COLORS[dayRisk.riskLevel] }]}>
+              {dayRisk.riskLevel} RISK
+            </Text>
           </View>
           <Text style={styles.confidence}>
             {Math.round(dayRisk.confidence * 100)}% Confidence
@@ -247,12 +259,12 @@ export default function DayDetailScreen() {
         </Pressable>
 
         {/* Hourly Timeline */}
-        <InfoCard title="Hourly Forecast" emoji="🕐">
+        <GlassCard title="Hourly Forecast" emoji="🕐">
           <Text style={styles.timezoneText}>
             Local time ({destination?.timezone || "UTC"})
           </Text>
           {hourlyLoading ? (
-            <ActivityIndicator size="small" color="#60a5fa" style={styles.hourlyLoader} />
+            <ActivityIndicator size="small" color={COLORS.accentBlue} style={styles.hourlyLoader} />
           ) : hourlyData.length > 0 ? (
             <>
               <View style={styles.hourlyLegend}>
@@ -264,15 +276,15 @@ export default function DayDetailScreen() {
           ) : (
             <Text style={styles.noDataText}>Hourly data not available</Text>
           )}
-        </InfoCard>
+        </GlassCard>
 
         {/* Travel Advice with emoji */}
-        <InfoCard title="Travel Advice" emoji={ADVICE_EMOJIS[dayRisk.riskLevel]}>
+        <GlassCard title="Travel Advice" emoji={ADVICE_EMOJIS[dayRisk.riskLevel]}>
           <Text style={styles.adviceText}>{dayRisk.advice}</Text>
-        </InfoCard>
+        </GlassCard>
 
         {/* Analysis with bullet points */}
-        <InfoCard title="Analysis" emoji="📊">
+        <GlassCard title="Analysis" emoji="📊">
           {rationalePoints.length > 0 ? (
             rationalePoints.map((point, i) => (
               <BulletPoint key={i} text={point} />
@@ -280,11 +292,11 @@ export default function DayDetailScreen() {
           ) : (
             <Text style={styles.rationaleText}>{dayRisk.rationale}</Text>
           )}
-        </InfoCard>
+        </GlassCard>
 
         {/* Expected Rainfall - Total for Day */}
         {(totalRainfall !== null || dayRisk.expectedRainMmRange) && (
-          <InfoCard title="Expected Rainfall" emoji="🌧️">
+          <GlassCard title="Expected Rainfall" emoji="🌧️">
             {totalRainfall !== null ? (
               <View style={styles.rainfallContainer}>
                 <Text style={styles.rainfallTotal}>
@@ -310,12 +322,12 @@ export default function DayDetailScreen() {
                 </Text>
               </View>
             )}
-          </InfoCard>
+          </GlassCard>
         )}
 
         {/* Weather Flags with emoji */}
         {dayRisk.flags && dayRisk.flags.length > 0 && (
-          <InfoCard title="Weather Alerts" emoji="🚨">
+          <GlassCard title="Weather Alerts" emoji="🚨">
             <View style={styles.flagsContainer}>
               {dayRisk.flags.map((flag, i) => (
                 <View key={i} style={styles.flag}>
@@ -326,47 +338,50 @@ export default function DayDetailScreen() {
                 </View>
               ))}
             </View>
-          </InfoCard>
+          </GlassCard>
         )}
 
         {/* Temperature Range */}
         {dayForecast && (dayForecast.tempMinC !== null || dayForecast.tempMaxC !== null) && (
-          <InfoCard title="Temperature" emoji="🌡️">
+          <GlassCard title="Temperature" emoji="🌡️">
             <View style={styles.tempContainer}>
               <View style={styles.tempItem}>
-                <Text style={styles.tempEmoji}>❄️</Text>
+                <View style={styles.tempIconContainer}>
+                  <Text style={styles.tempEmoji}>❄️</Text>
+                </View>
                 <Text style={styles.tempValue}>
-                  {dayForecast.tempMinC?.toFixed(0) ?? "N/A"}°C
+                  {dayForecast.tempMinC?.toFixed(0) ?? "N/A"}°
                 </Text>
                 <Text style={styles.tempLabel}>Low</Text>
               </View>
               <View style={styles.tempDivider} />
               <View style={styles.tempItem}>
-                <Text style={styles.tempEmoji}>🔥</Text>
+                <View style={styles.tempIconContainer}>
+                  <Text style={styles.tempEmoji}>🔥</Text>
+                </View>
                 <Text style={styles.tempValue}>
-                  {dayForecast.tempMaxC?.toFixed(0) ?? "N/A"}°C
+                  {dayForecast.tempMaxC?.toFixed(0) ?? "N/A"}°
                 </Text>
                 <Text style={styles.tempLabel}>High</Text>
               </View>
             </View>
-          </InfoCard>
+          </GlassCard>
         )}
       </ScrollView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1e3a5f",
   },
   flex: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   errorContainer: {
     flex: 1,
@@ -379,7 +394,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: {
-    color: "rgba(255,255,255,0.7)",
+    color: COLORS.textSecondary,
     fontSize: 16,
   },
   header: {
@@ -388,67 +403,72 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   headerEmoji: {
-    fontSize: 56,
+    fontSize: 64,
     marginBottom: 8,
   },
   headerDate: {
-    color: "white",
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 10,
+    color: COLORS.textPrimary,
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 12,
   },
   riskBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 20,
     marginBottom: 8,
   },
   riskBadgeText: {
-    color: "white",
     fontSize: 14,
     fontWeight: "bold",
+    letterSpacing: 0.5,
   },
   confidence: {
-    color: "rgba(255,255,255,0.6)",
+    color: COLORS.textMuted,
     fontSize: 13,
   },
   askAiButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#3b82f6",
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: COLORS.accentBlue,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
     gap: 8,
+    ...SHADOWS.card,
   },
   askAiButtonPressed: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#3a7fc4",
+    transform: [{ scale: 0.98 }],
   },
   askAiIcon: {
-    fontSize: 18,
+    fontSize: 20,
   },
   askAiText: {
     color: "white",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
   },
-  infoCard: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 16,
+  glassCard: {
+    backgroundColor: COLORS.glassBackground,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
     padding: 16,
     marginBottom: 12,
+    ...SHADOWS.card,
   },
-  infoCardTitle: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 13,
+  cardTitle: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 12,
   },
   timezoneText: {
-    color: "rgba(255,255,255,0.5)",
+    color: COLORS.textMuted,
     fontSize: 11,
     marginBottom: 8,
   },
@@ -464,12 +484,12 @@ const styles = StyleSheet.create({
     width: 48,
   },
   hourlyTime: {
-    color: "rgba(255,255,255,0.7)",
+    color: COLORS.textSecondary,
     fontSize: 11,
     marginBottom: 4,
   },
   hourlyTemp: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 6,
@@ -477,19 +497,20 @@ const styles = StyleSheet.create({
   hourlyRainBarContainer: {
     width: 24,
     height: 40,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 4,
+    backgroundColor: "rgba(74, 144, 217, 0.1)",
+    borderRadius: 6,
     overflow: "hidden",
     justifyContent: "flex-end",
     marginBottom: 4,
   },
   hourlyRainFill: {
     width: "100%",
-    borderRadius: 4,
+    borderRadius: 6,
   },
   hourlyRainText: {
-    color: "#60a5fa",
+    color: COLORS.accentBlue,
     fontSize: 10,
+    fontWeight: "500",
   },
   hourlyLegend: {
     flexDirection: "row",
@@ -497,26 +518,26 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   legendItem: {
-    color: "rgba(255,255,255,0.5)",
+    color: COLORS.textMuted,
     fontSize: 11,
   },
   hourlyLoader: {
     paddingVertical: 20,
   },
   noDataText: {
-    color: "rgba(255,255,255,0.5)",
+    color: COLORS.textMuted,
     fontSize: 13,
     textAlign: "center",
     paddingVertical: 12,
   },
   adviceText: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 17,
     fontWeight: "600",
     lineHeight: 24,
   },
   rationaleText: {
-    color: "rgba(255,255,255,0.8)",
+    color: COLORS.textSecondary,
     fontSize: 14,
     lineHeight: 22,
   },
@@ -525,13 +546,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   bulletDot: {
-    color: "#60a5fa",
+    color: COLORS.accentBlue,
     fontSize: 16,
     marginRight: 8,
     lineHeight: 22,
   },
   bulletText: {
-    color: "rgba(255,255,255,0.85)",
+    color: COLORS.textSecondary,
     fontSize: 14,
     lineHeight: 22,
     flex: 1,
@@ -541,12 +562,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   rainfallTotal: {
-    color: "#67e8f9",
-    fontSize: 32,
-    fontWeight: "bold",
+    color: COLORS.accentBlue,
+    fontSize: 36,
+    fontWeight: "700",
   },
   rainfallLabel: {
-    color: "rgba(255,255,255,0.5)",
+    color: COLORS.textMuted,
     fontSize: 12,
     marginTop: 4,
   },
@@ -554,10 +575,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
+    borderTopColor: "rgba(0,0,0,0.05)",
   },
   breakdownText: {
-    color: "rgba(255,255,255,0.7)",
+    color: COLORS.textSecondary,
     fontSize: 13,
     marginBottom: 4,
   },
@@ -569,18 +590,19 @@ const styles = StyleSheet.create({
   flag: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 6,
   },
   flagEmoji: {
     fontSize: 16,
   },
   flagText: {
-    color: "#fca5a5",
+    color: "#dc2626",
     fontSize: 13,
+    fontWeight: "500",
   },
   tempContainer: {
     flexDirection: "row",
@@ -592,23 +614,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
+  tempIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
   tempEmoji: {
     fontSize: 24,
-    marginBottom: 4,
   },
   tempValue: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "bold",
+    color: COLORS.textPrimary,
+    fontSize: 28,
+    fontWeight: "700",
   },
   tempLabel: {
-    color: "rgba(255,255,255,0.5)",
+    color: COLORS.textMuted,
     fontSize: 12,
     marginTop: 2,
   },
   tempDivider: {
     width: 1,
-    height: 60,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    height: 80,
+    backgroundColor: "rgba(0,0,0,0.08)",
   },
 });

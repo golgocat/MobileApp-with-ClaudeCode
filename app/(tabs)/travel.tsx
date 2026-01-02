@@ -8,6 +8,7 @@ import {
   Modal,
   Alert,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -15,6 +16,7 @@ import { DESTINATIONS } from "../../constants/destinations";
 import { Destination } from "../../types/travel.types";
 import { generateId } from "../../utils/dateRange";
 import { CalendarPicker } from "../../components/CalendarPicker";
+import { COLORS, GRADIENTS, SHADOWS } from "../../constants/theme";
 
 function formatDisplayDate(dateStr: string): string {
   if (!dateStr) return "";
@@ -71,12 +73,13 @@ export default function TravelScreen() {
   const hasDates = startDate && endDate;
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
+    <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
+      <StatusBar style="dark" />
       <SafeAreaView style={styles.flex} edges={["top"]}>
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -91,12 +94,15 @@ export default function TravelScreen() {
           <View style={styles.section}>
             <Text style={styles.label}>Destination</Text>
             <Pressable
-              style={styles.picker}
+              style={styles.glassCard}
               onPress={() => setShowDestinationPicker(true)}
             >
-              <Text style={styles.pickerText}>
-                {selectedDestination.displayName}, {selectedDestination.countryCode}
-              </Text>
+              <View style={styles.pickerContent}>
+                <Text style={styles.pickerEmoji}>📍</Text>
+                <Text style={styles.pickerText}>
+                  {selectedDestination.displayName}, {selectedDestination.countryCode}
+                </Text>
+              </View>
               <Text style={styles.pickerArrow}>▼</Text>
             </Pressable>
           </View>
@@ -105,7 +111,7 @@ export default function TravelScreen() {
           <View style={styles.section}>
             <Text style={styles.label}>Trip Dates</Text>
             <Pressable
-              style={styles.datePickerButton}
+              style={styles.glassCard}
               onPress={() => setShowCalendar(true)}
             >
               {hasDates ? (
@@ -149,6 +155,7 @@ export default function TravelScreen() {
             onPress={handleAnalyze}
             disabled={!hasDates}
           >
+            <Text style={styles.analyzeButtonIcon}>🔍</Text>
             <Text style={styles.analyzeButtonText}>
               {hasDates ? "Analyze Rain Risk" : "Select dates to continue"}
             </Text>
@@ -158,19 +165,25 @@ export default function TravelScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>How it works</Text>
             <View style={styles.infoItem}>
-              <Text style={styles.infoIcon}>🌧️</Text>
+              <View style={styles.infoIconContainer}>
+                <Text style={styles.infoIcon}>🌧️</Text>
+              </View>
               <Text style={styles.infoText}>
                 We fetch weather forecasts from AccuWeather
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoIcon}>🤖</Text>
+              <View style={styles.infoIconContainer}>
+                <Text style={styles.infoIcon}>🤖</Text>
+              </View>
               <Text style={styles.infoText}>
                 AI analyzes precipitation data for your trip
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoIcon}>📊</Text>
+              <View style={styles.infoIconContainer}>
+                <Text style={styles.infoIcon}>📊</Text>
+              </View>
               <Text style={styles.infoText}>
                 Get day-by-day risk levels and travel advice
               </Text>
@@ -227,20 +240,20 @@ export default function TravelScreen() {
         initialStartDate={startDate}
         initialEndDate={endDate}
       />
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1e3a5f",
   },
   flex: {
     flex: 1,
   },
   scrollContent: {
     padding: 20,
+    paddingBottom: 40,
   },
   header: {
     alignItems: "center",
@@ -248,17 +261,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   headerIcon: {
-    fontSize: 48,
+    fontSize: 56,
     marginBottom: 12,
   },
   title: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: "700",
     marginBottom: 8,
   },
   subtitle: {
-    color: "rgba(255,255,255,0.7)",
+    color: COLORS.textSecondary,
     fontSize: 16,
     textAlign: "center",
   },
@@ -266,109 +279,135 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   label: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontSize: 12,
     fontWeight: "600",
     marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 1,
+    marginLeft: 4,
   },
-  picker: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 12,
+  glassCard: {
+    backgroundColor: COLORS.glassBackground,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    ...SHADOWS.card,
+  },
+  pickerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pickerEmoji: {
+    fontSize: 24,
+    marginRight: 12,
   },
   pickerText: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 18,
+    fontWeight: "500",
   },
   pickerArrow: {
-    color: "rgba(255,255,255,0.5)",
+    color: COLORS.textMuted,
     fontSize: 12,
-  },
-  datePickerButton: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 16,
-    padding: 16,
   },
   selectedDatesDisplay: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    flex: 1,
   },
   dateBlock: {
     flex: 1,
   },
   dateBlockLabel: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 12,
+    color: COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
   dateBlockValue: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },
   dateArrowContainer: {
     alignItems: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
   },
   dateArrow: {
-    color: "#3b82f6",
+    color: COLORS.accentBlue,
     fontSize: 20,
+    fontWeight: "300",
   },
   tripDuration: {
-    color: "#60a5fa",
+    color: COLORS.accentBlue,
     fontSize: 12,
+    fontWeight: "500",
     marginTop: 2,
   },
   emptyDateDisplay: {
     alignItems: "center",
     paddingVertical: 12,
+    flex: 1,
   },
   calendarIcon: {
-    fontSize: 32,
+    fontSize: 36,
     marginBottom: 8,
   },
   selectDatesText: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "500",
   },
   selectDatesHint: {
-    color: "rgba(255,255,255,0.5)",
+    color: COLORS.textMuted,
     fontSize: 13,
     marginTop: 4,
   },
   analyzeButton: {
-    backgroundColor: "#3b82f6",
-    borderRadius: 16,
+    backgroundColor: COLORS.accentBlue,
+    borderRadius: 20,
     paddingVertical: 18,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     marginBottom: 32,
+    ...SHADOWS.card,
   },
   analyzeButtonDisabled: {
-    backgroundColor: "rgba(59, 130, 246, 0.3)",
+    backgroundColor: "rgba(74, 144, 217, 0.4)",
   },
   analyzeButtonPressed: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#3a7fc4",
+    transform: [{ scale: 0.98 }],
+  },
+  analyzeButtonIcon: {
+    fontSize: 20,
+    marginRight: 8,
   },
   analyzeButtonText: {
     color: "white",
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   infoCard: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 16,
+    backgroundColor: COLORS.glassBackground,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
     padding: 20,
+    ...SHADOWS.card,
   },
   infoTitle: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 16,
@@ -376,33 +415,43 @@ const styles = StyleSheet.create({
   infoItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  infoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
   },
   infoIcon: {
     fontSize: 20,
-    marginRight: 12,
-    width: 28,
   },
   infoText: {
-    color: "rgba(255,255,255,0.7)",
+    color: COLORS.textSecondary,
     fontSize: 14,
     flex: 1,
+    lineHeight: 20,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalContent: {
-    backgroundColor: "#1e3a5f",
-    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 24,
     padding: 20,
     width: "80%",
     maxWidth: 320,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
   },
   modalTitle: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 16,
@@ -411,18 +460,18 @@ const styles = StyleSheet.create({
   modalOption: {
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 8,
   },
   modalOptionSelected: {
-    backgroundColor: "rgba(59, 130, 246, 0.3)",
+    backgroundColor: "rgba(74, 144, 217, 0.15)",
   },
   modalOptionText: {
-    color: "rgba(255,255,255,0.8)",
+    color: COLORS.textSecondary,
     fontSize: 16,
   },
   modalOptionTextSelected: {
-    color: "white",
+    color: COLORS.accentBlue,
     fontWeight: "600",
   },
 });

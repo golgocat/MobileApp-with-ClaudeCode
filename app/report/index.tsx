@@ -8,18 +8,26 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTravelRisk } from "../../hooks/useTravelRisk";
 import { getDestination } from "../../constants/destinations";
 import { DestinationId, DayRisk, DayRiskLevel } from "../../types/travel.types";
 import { formatDate } from "../../utils/dateRange";
+import { COLORS, GRADIENTS, SHADOWS } from "../../constants/theme";
 
 const RISK_COLORS: Record<DayRiskLevel, string> = {
   LOW: "#22c55e",
   MEDIUM: "#f59e0b",
   HIGH: "#ef4444",
   EXTREME: "#dc2626",
+};
+
+const RISK_BG_COLORS: Record<DayRiskLevel, string> = {
+  LOW: "rgba(34, 197, 94, 0.15)",
+  MEDIUM: "rgba(245, 158, 11, 0.15)",
+  HIGH: "rgba(239, 68, 68, 0.15)",
+  EXTREME: "rgba(220, 38, 38, 0.2)",
 };
 
 const RISK_EMOJIS: Record<DayRiskLevel, string> = {
@@ -31,8 +39,8 @@ const RISK_EMOJIS: Record<DayRiskLevel, string> = {
 
 function RiskBadge({ level }: { level: DayRiskLevel }) {
   return (
-    <View style={[styles.riskBadge, { backgroundColor: RISK_COLORS[level] }]}>
-      <Text style={styles.riskBadgeText}>{level}</Text>
+    <View style={[styles.riskBadge, { backgroundColor: RISK_BG_COLORS[level] }]}>
+      <Text style={[styles.riskBadgeText, { color: RISK_COLORS[level] }]}>{level}</Text>
     </View>
   );
 }
@@ -45,7 +53,7 @@ function DayCard({ day, onPress }: { day: DayRisk; onPress: () => void }) {
     >
       <View style={styles.dayCardLeft}>
         <Text style={styles.dayEmoji}>{RISK_EMOJIS[day.riskLevel]}</Text>
-        <View>
+        <View style={styles.dayCardInfo}>
           <Text style={styles.dayDate}>{formatDate(day.date)}</Text>
           <Text style={styles.dayAdvice} numberOfLines={1}>
             {day.advice}
@@ -112,21 +120,21 @@ export default function ReportScreen() {
 
   if (loading && !report) {
     return (
-      <View style={styles.container}>
+      <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="white" />
+          <ActivityIndicator size="large" color={COLORS.accentBlue} />
           <Text style={styles.loadingText}>Analyzing weather data...</Text>
           <Text style={styles.loadingSubtext}>
             Fetching forecasts and running AI analysis
           </Text>
         </View>
-      </View>
+      </LinearGradient>
     );
   }
 
   if (error && !report) {
     return (
-      <View style={styles.container}>
+      <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorEmoji}>⚠️</Text>
           <Text style={styles.errorTitle}>Analysis Failed</Text>
@@ -135,20 +143,21 @@ export default function ReportScreen() {
             <Text style={styles.retryButtonText}>Try Again</Text>
           </Pressable>
         </View>
-      </View>
+      </LinearGradient>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
       <ScrollView
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="white"
+            tintColor={COLORS.textSecondary}
           />
         }
       >
@@ -217,20 +226,20 @@ export default function ReportScreen() {
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1e3a5f",
   },
   flex: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 40,
   },
   loadingContainer: {
     flex: 1,
@@ -239,13 +248,13 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   loadingText: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: "600",
     marginTop: 16,
   },
   loadingSubtext: {
-    color: "rgba(255,255,255,0.6)",
+    color: COLORS.textSecondary,
     fontSize: 14,
     marginTop: 8,
   },
@@ -260,22 +269,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorTitle: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 20,
     fontWeight: "600",
     marginBottom: 8,
   },
   errorMessage: {
-    color: "rgba(255,255,255,0.7)",
+    color: COLORS.textSecondary,
     fontSize: 14,
     textAlign: "center",
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: COLORS.accentBlue,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 16,
+    ...SHADOWS.card,
   },
   retryButtonText: {
     color: "white",
@@ -287,23 +297,26 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerDestination: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   headerDates: {
-    color: "rgba(255,255,255,0.7)",
+    color: COLORS.textSecondary,
     fontSize: 14,
     marginTop: 4,
   },
   summaryCard: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 16,
+    backgroundColor: COLORS.glassBackground,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
     padding: 20,
     marginBottom: 24,
+    ...SHADOWS.card,
   },
   summaryTitle: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 16,
@@ -316,55 +329,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   summaryEmoji: {
-    fontSize: 24,
+    fontSize: 28,
     marginBottom: 4,
   },
   summaryCount: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontWeight: "700",
   },
   summaryLabel: {
-    color: "rgba(255,255,255,0.6)",
+    color: COLORS.textMuted,
     fontSize: 10,
     textTransform: "uppercase",
+    fontWeight: "600",
   },
   dayList: {
     marginBottom: 24,
   },
   dayListTitle: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 12,
   },
   dayCard: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 12,
+    backgroundColor: COLORS.glassBackground,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
     padding: 16,
-    marginBottom: 8,
+    marginBottom: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    ...SHADOWS.cardSmall,
   },
   dayCardPressed: {
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    transform: [{ scale: 0.98 }],
   },
   dayCardLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
+  dayCardInfo: {
+    flex: 1,
+  },
   dayEmoji: {
-    fontSize: 32,
-    marginRight: 12,
+    fontSize: 36,
+    marginRight: 14,
   },
   dayDate: {
-    color: "white",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },
   dayAdvice: {
-    color: "rgba(255,255,255,0.6)",
+    color: COLORS.textSecondary,
     fontSize: 12,
     marginTop: 2,
     maxWidth: 180,
@@ -373,17 +394,16 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   dayConfidence: {
-    color: "rgba(255,255,255,0.5)",
+    color: COLORS.textMuted,
     fontSize: 10,
     marginTop: 4,
   },
   riskBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   riskBadgeText: {
-    color: "white",
     fontSize: 12,
     fontWeight: "bold",
   },
@@ -392,7 +412,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   footerText: {
-    color: "rgba(255,255,255,0.4)",
+    color: COLORS.textMuted,
     fontSize: 12,
     marginBottom: 4,
   },
