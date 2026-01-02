@@ -43,7 +43,9 @@ Weather Forecast:
 - Temperature: ${context.forecast.tempMin ?? 'N/A'}°C to ${context.forecast.tempMax ?? 'N/A'}°C
 ` : ''}
 
-Answer the user's questions helpfully and concisely. Focus on practical travel advice related to weather. If asked about activities, suggest weather-appropriate options. Keep responses brief and friendly.`;
+Answer the user's questions helpfully and concisely. Focus on practical travel advice related to weather. If asked about activities, suggest weather-appropriate options. Keep responses brief and friendly.
+
+IMPORTANT: Use plain text only. Do NOT use markdown formatting like **bold**, *italic*, or bullet points with asterisks. Write naturally as if speaking to a friend.`;
 }
 
 export async function sendChatMessage(args: {
