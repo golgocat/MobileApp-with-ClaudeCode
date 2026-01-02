@@ -79,14 +79,18 @@ export class WeatherService {
         url += `&apikey=${ACCUWEATHER_API_KEY}`;
       }
 
+      console.log('🌡️ Fetching current conditions:', url.substring(0, 80) + '...');
       const response = await fetch(url, { headers });
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Current conditions failed:', response.status, errorText);
         throw new Error(
           `Current conditions fetch failed (${response.status}): ${errorText}`
         );
       }
+
+      console.log('✅ Current conditions fetched successfully');
 
       const conditions: AccuWeatherCurrentConditions[] = await response.json();
       if (!conditions || conditions.length === 0) {
@@ -131,12 +135,16 @@ export class WeatherService {
         url += `&apikey=${ACCUWEATHER_API_KEY}`;
       }
 
+      console.log('📅 Fetching daily forecast:', endpoint);
       const response = await fetch(url, { headers });
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Daily forecast failed:', response.status, errorText);
         throw new Error(`Daily forecast fetch failed (${response.status}): ${errorText}`);
       }
+
+      console.log('✅ Daily forecast fetched successfully');
 
       const forecast = await response.json();
       return forecast.DailyForecasts || [];
@@ -172,12 +180,16 @@ export class WeatherService {
         url += `&apikey=${ACCUWEATHER_API_KEY}`;
       }
 
+      console.log('⏰ Fetching hourly forecast:', endpoint);
       const response = await fetch(url, { headers });
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Hourly forecast failed:', response.status, errorText);
         throw new Error(`Hourly forecast fetch failed (${response.status}): ${errorText}`);
       }
+
+      console.log('✅ Hourly forecast fetched successfully');
 
       const forecast: AccuWeatherHourlyForecast[] = await response.json();
       return forecast || [];
@@ -346,6 +358,9 @@ export class WeatherService {
     days: number = 7
   ): Promise<WeatherData> {
     try {
+      console.log('🔑 API Key loaded:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
+      console.log('🌍 Fetching weather for:', location);
+
       if (!ACCUWEATHER_API_KEY || ACCUWEATHER_API_KEY === '') {
         throw new Error(
           'AccuWeather API key is not configured. Please add EXPO_PUBLIC_ACCUWEATHER_API_KEY to your .env file'
