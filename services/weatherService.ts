@@ -406,6 +406,13 @@ export class WeatherService {
         );
       }
 
+      // Show detailed error for debugging
+      console.log('🔍 DEBUG INFO:');
+      console.log('  - API Key length:', ACCUWEATHER_API_KEY.length);
+      console.log('  - API Key prefix:', ACCUWEATHER_API_KEY.substring(0, 5));
+      console.log('  - Using Bearer auth:', ACCUWEATHER_API_KEY.startsWith('zpka_'));
+      console.log('  - Base URL:', BASE_URL);
+
       // For Dubai, we can use the hardcoded location key for better performance
       let locationKey = DUBAI_LOCATION_KEY;
       let locationData: AccuWeatherLocation;

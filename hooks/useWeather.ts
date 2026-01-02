@@ -22,10 +22,11 @@ export function useWeather(location: string, days: number = 7): UseWeatherResult
       const data = await WeatherService.getWeather(location, days);
       setWeatherData(data);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch weather data'
-      );
-      console.error('Weather fetch error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch weather data';
+      setError(errorMessage);
+      console.error('❌ Weather fetch error:', err);
+      console.error('❌ Error message:', errorMessage);
+      console.error('❌ Error type:', err instanceof Error ? err.constructor.name : typeof err);
     } finally {
       setLoading(false);
       setRefreshing(false);
