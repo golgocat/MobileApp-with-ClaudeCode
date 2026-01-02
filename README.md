@@ -1,6 +1,16 @@
-# MobileApp-with-ClaudeCode
+# Dubai Weather Forecast App
 
-A React Native mobile application built with Expo, developed using Claude Code on iOS.
+A stunning weather forecast mobile application for Dubai, built with React Native, Expo, and NativeWind. Developed using Claude Code on iOS.
+
+## ✨ Features
+
+- **Current Weather**: Real-time weather conditions for Dubai with temperature, feels-like, and weather emoji
+- **7-Day Forecast**: Extended forecast with daily highs, lows, and rain probability
+- **Hourly Forecast**: Hour-by-hour predictions for the next 12 hours
+- **Weather Details**: Comprehensive data including wind speed, humidity, visibility, and UV index
+- **Sun & Moon Info**: Sunrise, sunset times, and moon phase
+- **Pull to Refresh**: Swipe down to update weather data
+- **Beautiful UI**: Glassmorphism design with smooth animations and emoji weather icons
 
 ## 🚀 Quick Start
 
@@ -8,7 +18,7 @@ A React Native mobile application built with Expo, developed using Claude Code o
 - Node.js 18+
 - npm or yarn
 - Expo Go app on your phone (for testing)
-- Claude iOS app with Pro/Max subscription (for development)
+- Weather API key from [WeatherAPI.com](https://www.weatherapi.com/) (free tier available)
 
 ### Installation
 
@@ -19,6 +29,10 @@ cd MobileApp-with-ClaudeCode
 
 # Install dependencies
 npm install
+
+# Set up your Weather API key
+cp .env.example .env
+# Edit .env and add your API key from weatherapi.com
 
 # Start the development server
 npx expo start
@@ -67,17 +81,24 @@ This project is optimized for development using Claude Code on the iOS app.
 ## 📁 Project Structure
 
 ```
-├── app/                 # Screens (Expo Router)
-├── components/          # Reusable components
-│   └── ui/             # Base UI components
-├── hooks/              # Custom hooks
-├── services/           # API services
-├── stores/             # State management
-├── utils/              # Utilities
-├── constants/          # Theme & config
-├── assets/             # Images, fonts
-├── wireframes/         # UI designs
-└── plans/              # Dev plans
+├── app/
+│   ├── index.tsx            # Main weather screen
+│   └── _layout.tsx          # Root layout
+├── components/
+│   ├── features/
+│   │   ├── WeatherCard.tsx      # Current weather display
+│   │   ├── ForecastCard.tsx     # Daily forecast card
+│   │   └── HourlyForecast.tsx   # Hourly forecast slider
+│   └── ui/                  # Base UI components (Button, Input)
+├── hooks/
+│   └── useWeather.ts        # Weather data custom hook
+├── services/
+│   ├── weatherService.ts    # Weather API service
+│   └── weather.types.ts     # TypeScript type definitions
+├── constants/               # Theme & config
+├── assets/                  # Images, fonts
+├── wireframes/              # UI designs
+└── plans/                   # Dev plans
 ```
 
 ## 📱 Available Scripts
@@ -107,10 +128,34 @@ eas build --platform ios
 eas build --platform android
 ```
 
+## 🌤️ Weather API
+
+This app uses [WeatherAPI.com](https://www.weatherapi.com/) which provides:
+- Current weather conditions
+- 7-day forecast (free tier: 3 days, upgradeable to 14 days)
+- Hourly forecasts
+- Astronomy data (sunrise, sunset, moon phase)
+
+**Free tier benefits:**
+- 1 million API calls per month
+- No credit card required
+- Perfect for personal projects
+
+### Changing the Location
+
+To change from Dubai to another city, edit `app/index.tsx` line 15:
+
+```typescript
+const { weatherData, loading, error, refreshing, refetch } = useWeather(
+  "Dubai",  // Change this to any city name
+  7
+);
+```
+
 ## 📄 License
 
 MIT
 
 ---
 
-Built with ❤️ using Claude Code
+Built with ❤️ using Claude Code | Weather data by [WeatherAPI.com](https://www.weatherapi.com/)
