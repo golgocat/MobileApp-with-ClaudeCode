@@ -38,7 +38,7 @@ function getDaysBetween(start: string, end: string): number {
 
 export default function TravelScreen() {
   const [selectedDestination, setSelectedDestination] = useState<Destination>(
-    DESTINATIONS[1] // Default to Dubai
+    DESTINATIONS[0] // Default to Dubai
   );
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);

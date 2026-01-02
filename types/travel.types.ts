@@ -1,4 +1,4 @@
-export type DestinationId = "manila" | "dubai";
+export type DestinationId = "manila" | "dubai" | "paris" | "tokyo" | "hongkong" | "london" | "newyork" | "losangeles" | "sydney";
 
 export interface Destination {
   id: DestinationId;

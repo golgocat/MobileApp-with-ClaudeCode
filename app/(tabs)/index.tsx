@@ -25,7 +25,7 @@ import {
 
 export default function WeatherScreen() {
   const [selectedLocation, setSelectedLocation] = useState<Destination>(
-    DESTINATIONS[1]
+    DESTINATIONS[0]
   ); // Default to Dubai
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
