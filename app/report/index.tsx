@@ -37,6 +37,115 @@ const RISK_EMOJIS: Record<DayRiskLevel, string> = {
   EXTREME: "⛈️",
 };
 
+const RISK_SCORES: Record<DayRiskLevel, number> = {
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  EXTREME: 4,
+};
+
+interface TripInsights {
+  overallVerdict: string;
+  verdictEmoji: string;
+  verdictColor: string;
+  totalRainMm: { min: number; max: number } | null;
+  avgConfidence: number;
+  bestDay: DayRisk | null;
+  cautionDays: number;
+  recommendation: string;
+}
+
+function computeTripInsights(days: DayRisk[]): TripInsights {
+  if (days.length === 0) {
+    return {
+      overallVerdict: "No data",
+      verdictEmoji: "❓",
+      verdictColor: COLORS.textMuted,
+      totalRainMm: null,
+      avgConfidence: 0,
+      bestDay: null,
+      cautionDays: 0,
+      recommendation: "Unable to analyze trip.",
+    };
+  }
+
+  // Calculate average risk score
+  const avgScore = days.reduce((sum, d) => sum + RISK_SCORES[d.riskLevel], 0) / days.length;
+
+  // Count risk levels
+  const lowCount = days.filter(d => d.riskLevel === "LOW").length;
+  const highCount = days.filter(d => d.riskLevel === "HIGH" || d.riskLevel === "EXTREME").length;
+
+  // Calculate total expected rainfall
+  let totalRainMin = 0;
+  let totalRainMax = 0;
+  let hasRainData = false;
+  days.forEach(d => {
+    if (d.expectedRainMmRange) {
+      totalRainMin += d.expectedRainMmRange.min;
+      totalRainMax += d.expectedRainMmRange.max;
+      hasRainData = true;
+    }
+  });
+
+  // Average confidence
+  const avgConfidence = days.reduce((sum, d) => sum + d.confidence, 0) / days.length;
+
+  // Best day (lowest risk score, highest confidence)
+  const bestDay = [...days].sort((a, b) => {
+    const scoreDiff = RISK_SCORES[a.riskLevel] - RISK_SCORES[b.riskLevel];
+    if (scoreDiff !== 0) return scoreDiff;
+    return b.confidence - a.confidence;
+  })[0];
+
+  // Caution days (HIGH or EXTREME)
+  const cautionDays = highCount;
+
+  // Determine verdict
+  let overallVerdict: string;
+  let verdictEmoji: string;
+  let verdictColor: string;
+  let recommendation: string;
+
+  if (avgScore <= 1.3) {
+    overallVerdict = "Perfect Weather";
+    verdictEmoji = "🌟";
+    verdictColor = RISK_COLORS.LOW;
+    recommendation = "Excellent conditions for outdoor activities throughout your trip!";
+  } else if (avgScore <= 1.8) {
+    overallVerdict = "Mostly Clear";
+    verdictEmoji = "😎";
+    verdictColor = RISK_COLORS.LOW;
+    recommendation = "Great trip ahead with mostly favorable weather conditions.";
+  } else if (avgScore <= 2.3) {
+    overallVerdict = "Mixed Conditions";
+    verdictEmoji = "🌤️";
+    verdictColor = RISK_COLORS.MEDIUM;
+    recommendation = "Plan outdoor activities for clear days. Keep an umbrella handy.";
+  } else if (avgScore <= 3) {
+    overallVerdict = "Rain Expected";
+    verdictEmoji = "🌂";
+    verdictColor = RISK_COLORS.HIGH;
+    recommendation = "Pack rain gear and have indoor backup plans ready.";
+  } else {
+    overallVerdict = "Challenging Weather";
+    verdictEmoji = "⚠️";
+    verdictColor = RISK_COLORS.EXTREME;
+    recommendation = "Consider flexible scheduling. Monitor forecasts closely.";
+  }
+
+  return {
+    overallVerdict,
+    verdictEmoji,
+    verdictColor,
+    totalRainMm: hasRainData ? { min: totalRainMin, max: totalRainMax } : null,
+    avgConfidence,
+    bestDay,
+    cautionDays,
+    recommendation,
+  };
+}
+
 function RiskBadge({ level }: { level: DayRiskLevel }) {
   return (
     <View style={[styles.riskBadge, { backgroundColor: RISK_BG_COLORS[level] }]}>
@@ -171,38 +280,91 @@ export default function ReportScreen() {
           </Text>
         </View>
 
-        {/* Risk Summary */}
-        {report && (
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Trip Overview</Text>
-            <View style={styles.summaryStats}>
-              {(["LOW", "MEDIUM", "HIGH", "EXTREME"] as DayRiskLevel[]).map(
-                (level) => {
-                  const count = report.days.filter(
-                    (d) => d.riskLevel === level
-                  ).length;
+        {/* Trip Overview */}
+        {report && (() => {
+          const insights = computeTripInsights(report.days);
+          return (
+            <View style={styles.summaryCard}>
+              {/* Verdict Header */}
+              <View style={styles.verdictHeader}>
+                <Text style={styles.verdictEmoji}>{insights.verdictEmoji}</Text>
+                <Text style={[styles.verdictText, { color: insights.verdictColor }]}>
+                  {insights.overallVerdict}
+                </Text>
+              </View>
+
+              {/* Recommendation */}
+              <Text style={styles.recommendationText}>{insights.recommendation}</Text>
+
+              {/* Key Stats */}
+              <View style={styles.insightsGrid}>
+                {/* Best Day */}
+                {insights.bestDay && (
+                  <View style={styles.insightItem}>
+                    <Text style={styles.insightIcon}>✨</Text>
+                    <View style={styles.insightContent}>
+                      <Text style={styles.insightLabel}>Best Day</Text>
+                      <Text style={styles.insightValue}>{formatDate(insights.bestDay.date)}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Total Rainfall */}
+                {insights.totalRainMm && (
+                  <View style={styles.insightItem}>
+                    <Text style={styles.insightIcon}>💧</Text>
+                    <View style={styles.insightContent}>
+                      <Text style={styles.insightLabel}>Expected Rain</Text>
+                      <Text style={styles.insightValue}>
+                        {insights.totalRainMm.min === insights.totalRainMm.max
+                          ? `${insights.totalRainMm.min.toFixed(0)} mm`
+                          : `${insights.totalRainMm.min.toFixed(0)}-${insights.totalRainMm.max.toFixed(0)} mm`}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Caution Days */}
+                {insights.cautionDays > 0 && (
+                  <View style={styles.insightItem}>
+                    <Text style={styles.insightIcon}>⚠️</Text>
+                    <View style={styles.insightContent}>
+                      <Text style={styles.insightLabel}>Caution Days</Text>
+                      <Text style={[styles.insightValue, { color: RISK_COLORS.HIGH }]}>
+                        {insights.cautionDays} {insights.cautionDays === 1 ? "day" : "days"}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Confidence */}
+                <View style={styles.insightItem}>
+                  <Text style={styles.insightIcon}>📊</Text>
+                  <View style={styles.insightContent}>
+                    <Text style={styles.insightLabel}>Confidence</Text>
+                    <Text style={styles.insightValue}>{Math.round(insights.avgConfidence * 100)}%</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Day Distribution */}
+              <View style={styles.dayDistribution}>
+                {(["LOW", "MEDIUM", "HIGH", "EXTREME"] as DayRiskLevel[]).map((level) => {
+                  const count = report.days.filter((d) => d.riskLevel === level).length;
                   if (count === 0) return null;
                   return (
-                    <View key={level} style={styles.summaryStat}>
-                      <Text style={styles.summaryEmoji}>
-                        {RISK_EMOJIS[level]}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.summaryCount,
-                          { color: RISK_COLORS[level] },
-                        ]}
-                      >
+                    <View key={level} style={styles.distributionItem}>
+                      <Text style={styles.distributionEmoji}>{RISK_EMOJIS[level]}</Text>
+                      <Text style={[styles.distributionCount, { color: RISK_COLORS[level] }]}>
                         {count}
                       </Text>
-                      <Text style={styles.summaryLabel}>{level}</Text>
                     </View>
                   );
-                }
-              )}
+                })}
+              </View>
             </View>
-          </View>
-        )}
+          );
+        })()}
 
         {/* Day List */}
         <View style={styles.dayList}>
@@ -315,32 +477,78 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     ...SHADOWS.card,
   },
-  summaryTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-  summaryStats: {
+  verdictHeader: {
     flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  summaryStat: {
     alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
-  summaryEmoji: {
-    fontSize: 28,
-    marginBottom: 4,
+  verdictEmoji: {
+    fontSize: 36,
+    marginRight: 10,
   },
-  summaryCount: {
-    fontSize: 28,
+  verdictText: {
+    fontSize: 24,
     fontWeight: "700",
   },
-  summaryLabel: {
+  recommendationText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  insightsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -6,
+    marginBottom: 16,
+  },
+  insightItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "50%",
+    paddingHorizontal: 6,
+    marginBottom: 12,
+  },
+  insightIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  insightContent: {
+    flex: 1,
+  },
+  insightLabel: {
     color: COLORS.textMuted,
-    fontSize: 10,
+    fontSize: 11,
     textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  insightValue: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
     fontWeight: "600",
+    marginTop: 1,
+  },
+  dayDistribution: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.05)",
+    gap: 20,
+  },
+  distributionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  distributionEmoji: {
+    fontSize: 18,
+  },
+  distributionCount: {
+    fontSize: 16,
+    fontWeight: "700",
   },
   dayList: {
     marginBottom: 24,
