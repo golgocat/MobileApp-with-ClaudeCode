@@ -18,7 +18,7 @@ A stunning weather forecast mobile application for Dubai, built with React Nativ
 - Node.js 18+
 - npm or yarn
 - Expo Go app on your phone (for testing)
-- Weather API key from [WeatherAPI.com](https://www.weatherapi.com/) (free tier available)
+- AccuWeather API key from [AccuWeather Developer](https://developer.accuweather.com/) (free tier or subscription)
 
 ### Installation
 
@@ -30,9 +30,9 @@ cd MobileApp-with-ClaudeCode
 # Install dependencies
 npm install
 
-# Set up your Weather API key
+# Set up your AccuWeather API key
 cp .env.example .env
-# Edit .env and add your API key from weatherapi.com
+# Edit .env and add your API key from developer.accuweather.com
 
 # Start the development server
 npx expo start
@@ -128,18 +128,30 @@ eas build --platform ios
 eas build --platform android
 ```
 
-## 🌤️ Weather API
+## 🌤️ Weather API - AccuWeather
 
-This app uses [WeatherAPI.com](https://www.weatherapi.com/) which provides:
-- Current weather conditions
-- 7-day forecast (free tier: 3 days, upgradeable to 14 days)
-- Hourly forecasts
+This app uses [AccuWeather API](https://developer.accuweather.com/) which provides:
+- Current weather conditions with detailed metrics
+- Up to 15-day daily forecast (depending on subscription tier)
+- 12-hour and 24-hour hourly forecasts
 - Astronomy data (sunrise, sunset, moon phase)
+- AccuWeather's proprietary RealFeel® Temperature
+- High-accuracy weather data used by millions worldwide
 
-**Free tier benefits:**
-- 1 million API calls per month
-- No credit card required
-- Perfect for personal projects
+### Getting Your AccuWeather API Key
+
+1. Visit [AccuWeather Developer Portal](https://developer.accuweather.com/)
+2. Sign up for a free account or use your existing subscription
+3. Create a new app in the dashboard
+4. Copy your API key
+5. Add it to your `.env` file as `EXPO_PUBLIC_ACCUWEATHER_API_KEY`
+
+**Free tier (Limited Trial):**
+- 50 API calls per day
+- Access to all forecast endpoints
+- Perfect for testing and development
+
+**Paid subscriptions available for production use with higher limits**
 
 ### Changing the Location
 
@@ -158,4 +170,4 @@ MIT
 
 ---
 
-Built with ❤️ using Claude Code | Weather data by [WeatherAPI.com](https://www.weatherapi.com/)
+Built with ❤️ using Claude Code | Weather data by [AccuWeather](https://www.accuweather.com/)
