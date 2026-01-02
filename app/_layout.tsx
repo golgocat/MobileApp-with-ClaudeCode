@@ -20,8 +20,11 @@ export default function RootLayout() {
           options={{
             headerShown: true,
             headerTitle: "Rain Risk Report",
-            headerStyle: { backgroundColor: "#1e3a5f" },
+            headerStyle: { backgroundColor: "#0f1c2e" },
             headerTintColor: "white",
+            headerTitleStyle: { fontWeight: "600" },
+            headerBackTitle: "",
+            headerShadowVisible: false,
           }}
         />
         <Stack.Screen
@@ -29,8 +32,11 @@ export default function RootLayout() {
           options={{
             headerShown: true,
             headerTitle: "Day Details",
-            headerStyle: { backgroundColor: "#1e3a5f" },
+            headerStyle: { backgroundColor: "#0f1c2e" },
             headerTintColor: "white",
+            headerTitleStyle: { fontWeight: "600" },
+            headerBackTitle: "",
+            headerShadowVisible: false,
           }}
         />
       </Stack>
