@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useChat } from "../../hooks/useChat";
 import { DayContext, ChatMessage } from "../../services/gemini/chatService";
 
@@ -120,11 +119,11 @@ export default function ChatScreen() {
   }, [messages]);
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={90}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
         {/* Header Info */}
         <View style={styles.header}>
@@ -195,7 +194,7 @@ export default function ChatScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -332,11 +331,13 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    padding: 12,
-    paddingBottom: 8,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 24,
     gap: 8,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "#1e3a5f",
   },
   input: {
     flex: 1,
