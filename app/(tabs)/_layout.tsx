@@ -8,10 +8,8 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   };
 
   return (
-    <View style={styles.iconContainer}>
-      <Text style={[styles.icon, focused && styles.iconFocused]}>
-        {icons[name] || "📱"}
-      </Text>
+    <View style={[styles.iconContainer, focused && styles.iconContainerFocused]}>
+      <Text style={styles.icon}>{icons[name] || "📱"}</Text>
     </View>
   );
 }
@@ -22,9 +20,10 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: "#3b82f6",
-        tabBarInactiveTintColor: "#94a3b8",
+        tabBarActiveTintColor: "#ffffff",
+        tabBarInactiveTintColor: "rgba(255,255,255,0.5)",
         tabBarLabelStyle: styles.tabLabel,
+        tabBarItemStyle: styles.tabItem,
       }}
     >
       <Tabs.Screen
@@ -51,26 +50,35 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: "#0f172a",
-    borderTopColor: "rgba(255,255,255,0.1)",
-    borderTopWidth: 1,
-    height: 85,
-    paddingBottom: 20,
-    paddingTop: 8,
+    backgroundColor: "#0f1c2e",
+    borderTopWidth: 0,
+    height: 90,
+    paddingBottom: 24,
+    paddingTop: 12,
+    paddingHorizontal: 24,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  tabItem: {
+    paddingTop: 4,
   },
   tabLabel: {
     fontSize: 12,
     fontWeight: "600",
+    marginTop: 4,
   },
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "transparent",
+  },
+  iconContainerFocused: {
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
   },
   icon: {
-    fontSize: 24,
-    opacity: 0.6,
-  },
-  iconFocused: {
-    opacity: 1,
+    fontSize: 26,
   },
 });

@@ -6,6 +6,7 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
+  Dimensions,
 } from "react-native";
 
 interface CalendarPickerProps {
@@ -42,6 +43,10 @@ const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const CALENDAR_PADDING = 32; // 16px padding on each side
+const CELL_SIZE = Math.floor((SCREEN_WIDTH - CALENDAR_PADDING) / 7);
 
 function addDays(date: Date, days: number): Date {
   const result = new Date(date);
@@ -335,33 +340,44 @@ export function CalendarPicker({
                   const isDisabled = isPast || isFuture;
                   const isStart = startDate && isSameDay(date, startDate);
                   const isEnd = endDate && isSameDay(date, endDate);
-                  const isRange = isInRange(date, startDate, endDate);
+                  const isRange = isInRange(date, startDate, endDate) && !isStart && !isEnd;
                   const isToday = isSameDay(date, today);
+                  const isOnlyStartAndEnd = isStart && isEnd;
 
                   return (
-                    <Pressable
-                      key={date.toISOString()}
-                      style={[
-                        styles.dayCell,
-                        isRange && styles.dayCellInRange,
-                        isStart && styles.dayCellStart,
-                        isEnd && styles.dayCellEnd,
-                        (isStart || isEnd) && styles.dayCellSelected,
-                      ]}
-                      onPress={() => handleDayPress(date)}
-                      disabled={isDisabled}
-                    >
-                      <Text
+                    <View key={date.toISOString()} style={styles.dayCell}>
+                      {/* Range background */}
+                      {(isRange || (isStart && endDate && !isOnlyStartAndEnd) || (isEnd && startDate && !isOnlyStartAndEnd)) && (
+                        <View
+                          style={[
+                            styles.rangeBg,
+                            isStart && styles.rangeBgStart,
+                            isEnd && styles.rangeBgEnd,
+                          ]}
+                        />
+                      )}
+
+                      {/* Day button */}
+                      <Pressable
                         style={[
-                          styles.dayText,
-                          isDisabled && styles.dayTextDisabled,
-                          isToday && styles.dayTextToday,
-                          (isStart || isEnd) && styles.dayTextSelected,
+                          styles.dayButton,
+                          (isStart || isEnd) && styles.dayButtonSelected,
                         ]}
+                        onPress={() => handleDayPress(date)}
+                        disabled={isDisabled}
                       >
-                        {date.getDate()}
-                      </Text>
-                    </Pressable>
+                        <Text
+                          style={[
+                            styles.dayText,
+                            isDisabled && styles.dayTextDisabled,
+                            isToday && !isStart && !isEnd && styles.dayTextToday,
+                            (isStart || isEnd) && styles.dayTextSelected,
+                          ]}
+                        >
+                          {date.getDate()}
+                        </Text>
+                      </Pressable>
+                    </View>
                   );
                 })}
               </View>
@@ -516,9 +532,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   navButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
@@ -529,60 +545,76 @@ const styles = StyleSheet.create({
   navButtonText: {
     color: "white",
     fontSize: 24,
-    lineHeight: 28,
   },
   navButtonTextDisabled: {
     color: "rgba(255,255,255,0.3)",
   },
   weekdaysRow: {
     flexDirection: "row",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   weekdayCell: {
-    flex: 1,
+    width: CELL_SIZE,
     alignItems: "center",
     paddingVertical: 8,
   },
   weekdayText: {
     color: "rgba(255,255,255,0.5)",
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
   },
   calendarGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
   },
   dayCell: {
-    width: "14.28%",
-    aspectRatio: 1,
+    width: CELL_SIZE,
+    height: CELL_SIZE,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
-  dayCellInRange: {
-    backgroundColor: "rgba(59, 130, 246, 0.2)",
+  rangeBg: {
+    position: "absolute",
+    top: (CELL_SIZE - 40) / 2,
+    left: 0,
+    right: 0,
+    height: 40,
+    backgroundColor: "rgba(59, 130, 246, 0.25)",
   },
-  dayCellStart: {
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
+  rangeBgStart: {
+    left: "50%",
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
   },
-  dayCellEnd: {
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
+  rangeBgEnd: {
+    right: "50%",
+    left: 0,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
   },
-  dayCellSelected: {
-    backgroundColor: "#3b82f6",
+  dayButton: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
+  dayButtonSelected: {
+    backgroundColor: "#3b82f6",
   },
   dayText: {
     color: "white",
     fontSize: 16,
+    fontWeight: "500",
   },
   dayTextDisabled: {
-    color: "rgba(255,255,255,0.2)",
+    color: "rgba(255,255,255,0.25)",
   },
   dayTextToday: {
-    fontWeight: "bold",
     color: "#60a5fa",
+    fontWeight: "bold",
   },
   dayTextSelected: {
     color: "white",
