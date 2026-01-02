@@ -8,6 +8,28 @@ interface GeminiGenerateContentResponse {
   }>;
 }
 
+/**
+ * Extract JSON from a string that may contain markdown code blocks
+ */
+function extractJson(text: string): string {
+  // Remove markdown code blocks if present
+  let cleaned = text.trim();
+
+  // Handle ```json ... ``` or ``` ... ```
+  const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    cleaned = codeBlockMatch[1].trim();
+  }
+
+  // Try to find JSON object or array
+  const jsonMatch = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  if (jsonMatch) {
+    cleaned = jsonMatch[1];
+  }
+
+  return cleaned;
+}
+
 export async function generateGeminiContent(args: {
   instruction: string;
   input: unknown;
@@ -33,7 +55,8 @@ export async function generateGeminiContent(args: {
     ],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
+      responseMimeType: "application/json",
     },
   };
 
@@ -57,5 +80,6 @@ export async function generateGeminiContent(args: {
     throw new Error("Gemini returned empty content");
   }
 
-  return text;
+  // Extract and return clean JSON
+  return extractJson(text);
 }
