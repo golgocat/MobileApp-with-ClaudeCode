@@ -26,14 +26,23 @@ export class WeatherService {
     cityName: string
   ): Promise<AccuWeatherLocation> {
     try {
-      const response = await fetch(
-        `${BASE_URL}/locations/v1/cities/search?apikey=${ACCUWEATHER_API_KEY}&q=${encodeURIComponent(
-          cityName
-        )}`
-      );
+      // Support both query parameter and header authentication
+      const headers: HeadersInit = {};
+      let url = `${BASE_URL}/locations/v1/cities/search?q=${encodeURIComponent(cityName)}`;
+
+      if (ACCUWEATHER_API_KEY.startsWith('zpka_')) {
+        // Use header authentication for zpka_ format keys
+        headers['Authorization'] = `Bearer ${ACCUWEATHER_API_KEY}`;
+      } else {
+        // Use query parameter for traditional keys
+        url += `&apikey=${ACCUWEATHER_API_KEY}`;
+      }
+
+      const response = await fetch(url, { headers });
 
       if (!response.ok) {
-        throw new Error(`Location search failed: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Location search failed (${response.status}): ${errorText}`);
       }
 
       const locations: AccuWeatherLocation[] = await response.json();
@@ -58,13 +67,24 @@ export class WeatherService {
     locationKey: string
   ): Promise<AccuWeatherCurrentConditions> {
     try {
-      const response = await fetch(
-        `${BASE_URL}/currentconditions/v1/${locationKey}?apikey=${ACCUWEATHER_API_KEY}&details=true`
-      );
+      // Support both query parameter and header authentication
+      const headers: HeadersInit = {};
+      let url = `${BASE_URL}/currentconditions/v1/${locationKey}?details=true`;
+
+      if (ACCUWEATHER_API_KEY.startsWith('zpka_')) {
+        // Use header authentication for zpka_ format keys
+        headers['Authorization'] = `Bearer ${ACCUWEATHER_API_KEY}`;
+      } else {
+        // Use query parameter for traditional keys
+        url += `&apikey=${ACCUWEATHER_API_KEY}`;
+      }
+
+      const response = await fetch(url, { headers });
 
       if (!response.ok) {
+        const errorText = await response.text();
         throw new Error(
-          `Current conditions fetch failed: ${response.statusText}`
+          `Current conditions fetch failed (${response.status}): ${errorText}`
         );
       }
 
@@ -99,9 +119,19 @@ export class WeatherService {
       else if (days <= 10) endpoint = '10day';
       else endpoint = '15day';
 
-      const response = await fetch(
-        `${BASE_URL}/forecasts/v1/daily/${endpoint}/${locationKey}?apikey=${ACCUWEATHER_API_KEY}&details=true&metric=true`
-      );
+      // Support both query parameter and header authentication
+      const headers: HeadersInit = {};
+      let url = `${BASE_URL}/forecasts/v1/daily/${endpoint}/${locationKey}?details=true&metric=true`;
+
+      if (ACCUWEATHER_API_KEY.startsWith('zpka_')) {
+        // Use header authentication for zpka_ format keys
+        headers['Authorization'] = `Bearer ${ACCUWEATHER_API_KEY}`;
+      } else {
+        // Use query parameter for traditional keys
+        url += `&apikey=${ACCUWEATHER_API_KEY}`;
+      }
+
+      const response = await fetch(url, { headers });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -129,12 +159,24 @@ export class WeatherService {
   ): Promise<AccuWeatherHourlyForecast[]> {
     try {
       const endpoint = hours <= 12 ? '12hour' : '24hour';
-      const response = await fetch(
-        `${BASE_URL}/forecasts/v1/hourly/${endpoint}/${locationKey}?apikey=${ACCUWEATHER_API_KEY}&details=true&metric=true`
-      );
+
+      // Support both query parameter and header authentication
+      const headers: HeadersInit = {};
+      let url = `${BASE_URL}/forecasts/v1/hourly/${endpoint}/${locationKey}?details=true&metric=true`;
+
+      if (ACCUWEATHER_API_KEY.startsWith('zpka_')) {
+        // Use header authentication for zpka_ format keys
+        headers['Authorization'] = `Bearer ${ACCUWEATHER_API_KEY}`;
+      } else {
+        // Use query parameter for traditional keys
+        url += `&apikey=${ACCUWEATHER_API_KEY}`;
+      }
+
+      const response = await fetch(url, { headers });
 
       if (!response.ok) {
-        throw new Error(`Hourly forecast fetch failed: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Hourly forecast fetch failed (${response.status}): ${errorText}`);
       }
 
       const forecast: AccuWeatherHourlyForecast[] = await response.json();
