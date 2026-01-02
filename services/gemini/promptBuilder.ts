@@ -7,42 +7,42 @@ export function buildRainRiskPrompt(args: {
 }) {
   const { destination, itinerary, forecasts } = args;
 
-  const schemaHint = {
-    modelVersion: "travel_rain_risk_v1",
-    timezone: destination.timezone,
-    days: [
-      {
-        date: "YYYY-MM-DD",
-        riskLevel: "LOW|MEDIUM|HIGH|EXTREME",
-        expectedRainMmRange: { min: 0, max: 0 },
-        confidence: 0.0,
-        advice: "string",
-        rationale: "string",
-        flags: ["string"],
-      },
-    ],
-  };
+  const instruction = `You are a travel rain-risk analyst. Analyze the weather forecast and return a JSON risk assessment.
 
-  const instruction = `
-You are a travel rain-risk analyst.
-Return JSON only. Do not use markdown. Do not wrap in code fences. Do not add any extra text.
+IMPORTANT: Return ONLY valid JSON. No markdown, no code fences, no extra text.
+
+Analyze dates from ${itinerary.startDate} to ${itinerary.endDate} for ${destination.displayName}.
+
+Risk levels based on precipitation probability:
+- LOW: <20%
+- MEDIUM: 20-50%
+- HIGH: 50-80%
+- EXTREME: >80%
+
+Return this exact JSON structure:
+{
+  "modelVersion": "travel_rain_risk_v1",
+  "timezone": "${destination.timezone}",
+  "days": [
+    {
+      "date": "YYYY-MM-DD",
+      "riskLevel": "LOW",
+      "expectedRainMmRange": {"min": 0, "max": 0},
+      "confidence": 0.95,
+      "advice": "Short practical advice",
+      "rationale": "Brief explanation",
+      "flags": []
+    }
+  ]
+}
 
 Rules:
-- Evaluate only dates between ${itinerary.startDate} and ${itinerary.endDate} inclusive.
-- Use destination timezone: ${destination.timezone}.
-- If rainfall amount cannot be inferred from the input forecast fields, set expectedRainMmRange to null. Do not guess.
-- riskLevel must be one of: LOW, MEDIUM, HIGH, EXTREME.
-  - LOW: <20% precipitation probability
-  - MEDIUM: 20-50% precipitation probability
-  - HIGH: 50-80% precipitation probability
-  - EXTREME: >80% precipitation probability or heavy rain expected
-- confidence must be between 0 and 1.
-- Keep advice and rationale short, practical, and specific.
-- flags should include relevant warnings like "monsoon_season", "flash_flood_risk", "outdoor_activities_affected", etc.
-
-Output must match this shape exactly:
-${JSON.stringify(schemaHint, null, 2)}
-`.trim();
+- One entry per day in the trip range
+- riskLevel must be: LOW, MEDIUM, HIGH, or EXTREME
+- confidence: number between 0 and 1
+- expectedRainMmRange: object with min/max or null if unknown
+- flags: array of strings like "monsoon_season", "flash_flood_risk"
+- Keep advice and rationale concise`;
 
   const input = {
     destination: {
@@ -50,18 +50,18 @@ ${JSON.stringify(schemaHint, null, 2)}
       countryCode: destination.countryCode,
       timezone: destination.timezone,
     },
-    itinerary: {
-      startDate: itinerary.startDate,
-      endDate: itinerary.endDate,
+    tripDates: {
+      start: itinerary.startDate,
+      end: itinerary.endDate,
     },
-    forecastDays: forecasts.map((f) => ({
+    forecasts: forecasts.map((f) => ({
       date: f.date,
-      precipProbabilityDay: f.precipProbabilityDay,
-      precipProbabilityNight: f.precipProbabilityNight,
-      precipAmountMmDay: f.precipAmountMmDay,
-      precipAmountMmNight: f.precipAmountMmNight,
-      tempMinC: f.tempMinC,
-      tempMaxC: f.tempMaxC,
+      precipProbDay: f.precipProbabilityDay,
+      precipProbNight: f.precipProbabilityNight,
+      precipMmDay: f.precipAmountMmDay,
+      precipMmNight: f.precipAmountMmNight,
+      tempMin: f.tempMinC,
+      tempMax: f.tempMaxC,
     })),
   };
 
