@@ -1,13 +1,13 @@
 import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useWeather } from '../hooks/useWeather';
+import { useWeather } from '../../hooks/useWeather';
 import {
   CurrentWeather,
   HourlyForecast,
   DailyForecast,
   WeatherDetails,
-} from '../components/weather';
+} from '../../components/weather';
 
 export default function WeatherScreen() {
   const { weather, loading, error, refreshing, refresh } = useWeather();
