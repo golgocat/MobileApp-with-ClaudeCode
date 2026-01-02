@@ -10,18 +10,47 @@ import {
   AccuWeatherHourlyForecast,
 } from './weather.types';
 
+// Try multiple ways to get the API key
 const ACCUWEATHER_API_KEY =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_ACCUWEATHER_API_KEY || '';
+  process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY ||
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_ACCUWEATHER_API_KEY ||
+  '';
 const BASE_URL = 'https://dataservice.accuweather.com';
 
 // Debug: Log API key status at module load
 console.log('🔧 WeatherService loaded');
+console.log('🔧 process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY:', process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY ? 'SET via process.env' : 'NOT SET');
 console.log('🔧 Constants.expoConfig:', Constants.expoConfig ? 'exists' : 'undefined');
 console.log('🔧 Constants.expoConfig.extra:', Constants.expoConfig?.extra ? 'exists' : 'undefined');
-console.log('🔧 API Key:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
+console.log('🔧 Final API Key:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
 
 // AccuWeather uses a fixed location key for Dubai
 const DUBAI_LOCATION_KEY = '323091'; // Dubai, AE
+
+// Fetch with timeout helper
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout: number = 10000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeout}ms`);
+    }
+    throw error;
+  }
+}
 
 export class WeatherService {
   /**
@@ -44,12 +73,16 @@ export class WeatherService {
         url += `&apikey=${ACCUWEATHER_API_KEY}`;
       }
 
-      const response = await fetch(url, { headers });
+      console.log('🔍 Searching location:', cityName);
+      const response = await fetchWithTimeout(url, { headers }, 15000);
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Location search failed:', response.status, errorText);
         throw new Error(`Location search failed (${response.status}): ${errorText}`);
       }
+
+      console.log('✅ Location found');
 
       const locations: AccuWeatherLocation[] = await response.json();
       if (!locations || locations.length === 0) {
@@ -86,7 +119,7 @@ export class WeatherService {
       }
 
       console.log('🌡️ Fetching current conditions:', url.substring(0, 80) + '...');
-      const response = await fetch(url, { headers });
+      const response = await fetchWithTimeout(url, { headers }, 15000);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -142,7 +175,7 @@ export class WeatherService {
       }
 
       console.log('📅 Fetching daily forecast:', endpoint);
-      const response = await fetch(url, { headers });
+      const response = await fetchWithTimeout(url, { headers }, 15000);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -187,7 +220,7 @@ export class WeatherService {
       }
 
       console.log('⏰ Fetching hourly forecast:', endpoint);
-      const response = await fetch(url, { headers });
+      const response = await fetchWithTimeout(url, { headers }, 15000);
 
       if (!response.ok) {
         const errorText = await response.text();
