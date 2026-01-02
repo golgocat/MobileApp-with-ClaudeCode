@@ -18,11 +18,11 @@ const ACCUWEATHER_API_KEY =
 const BASE_URL = 'https://dataservice.accuweather.com';
 
 // Debug: Log API key status at module load
-console.log('🔧 WeatherService loaded');
-console.log('🔧 process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY:', process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY ? 'SET via process.env' : 'NOT SET');
-console.log('🔧 Constants.expoConfig:', Constants.expoConfig ? 'exists' : 'undefined');
-console.log('🔧 Constants.expoConfig.extra:', Constants.expoConfig?.extra ? 'exists' : 'undefined');
-console.log('🔧 Final API Key:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
+console.warn('🔧 WeatherService loaded');
+console.warn('🔧 process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY:', process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY ? 'SET via process.env' : 'NOT SET');
+console.warn('🔧 Constants.expoConfig:', Constants.expoConfig ? 'exists' : 'undefined');
+console.warn('🔧 Constants.expoConfig.extra:', Constants.expoConfig?.extra ? 'exists' : 'undefined');
+console.warn('🔧 Final API Key:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
 
 // AccuWeather uses a fixed location key for Dubai
 const DUBAI_LOCATION_KEY = '323091'; // Dubai, AE
@@ -397,8 +397,8 @@ export class WeatherService {
     days: number = 7
   ): Promise<WeatherData> {
     try {
-      console.log('🔑 API Key loaded:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
-      console.log('🌍 Fetching weather for:', location);
+      console.warn('🔑 API Key loaded:', ACCUWEATHER_API_KEY ? `${ACCUWEATHER_API_KEY.substring(0, 10)}...` : 'NOT SET');
+      console.warn('🌍 Fetching weather for:', location);
 
       if (!ACCUWEATHER_API_KEY || ACCUWEATHER_API_KEY === '') {
         throw new Error(
@@ -407,11 +407,11 @@ export class WeatherService {
       }
 
       // Show detailed error for debugging
-      console.log('🔍 DEBUG INFO:');
-      console.log('  - API Key length:', ACCUWEATHER_API_KEY.length);
-      console.log('  - API Key prefix:', ACCUWEATHER_API_KEY.substring(0, 5));
-      console.log('  - Using Bearer auth:', ACCUWEATHER_API_KEY.startsWith('zpka_'));
-      console.log('  - Base URL:', BASE_URL);
+      console.warn('🔍 DEBUG INFO:');
+      console.warn('  - API Key length:', ACCUWEATHER_API_KEY.length);
+      console.warn('  - API Key prefix:', ACCUWEATHER_API_KEY.substring(0, 5));
+      console.warn('  - Using Bearer auth:', ACCUWEATHER_API_KEY.startsWith('zpka_'));
+      console.warn('  - Base URL:', BASE_URL);
 
       // For Dubai, we can use the hardcoded location key for better performance
       let locationKey = DUBAI_LOCATION_KEY;
