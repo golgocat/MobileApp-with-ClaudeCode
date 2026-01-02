@@ -157,7 +157,7 @@ export default function TravelScreen() {
           >
             <Text style={styles.analyzeButtonIcon}>🔍</Text>
             <Text style={styles.analyzeButtonText}>
-              {hasDates ? "Analyze Rain Risk" : "Select dates to continue"}
+              {hasDates ? "Analyze Rain Risk" : "AI Analysis"}
             </Text>
           </Pressable>
 
