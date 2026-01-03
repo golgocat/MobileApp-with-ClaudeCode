@@ -104,7 +104,7 @@ export function DailyForecast({ daily, destinationId }: DailyForecastProps) {
   return (
     <View style={styles.container}>
       <GlassCard style={styles.card}>
-        <Text style={styles.title}>5-Day Forecast</Text>
+        <Text style={styles.title}>10-Day Forecast</Text>
         {daily.map((item, index) => (
           <DayItem
             key={item.EpochDate}
