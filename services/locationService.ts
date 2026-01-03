@@ -96,29 +96,18 @@ class LocationService {
     return savedLocation;
   }
 
-  // Search places using NEW Google Places API (Autocomplete)
+  // Search places using Legacy Google Places API (Autocomplete)
   async searchPlaces(query: string): Promise<PlacePrediction[]> {
     if (!query || query.length < 2) {
       return [];
     }
 
-    // Temporarily hardcode for debugging - will revert once working
-    const apiKey = "AIzaSyDiTrqiMEONi5F3BiVmlsB5HidG4FimLwA";
-    console.log("Google Places API Key (hardcoded):", apiKey.substring(0, 10) + "...");
+    const apiKey = ENV.GOOGLE_PLACES_API_KEY;
 
-    const url = "https://places.googleapis.com/v1/places:autocomplete";
+    // Use legacy Places API endpoint
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=(cities)&key=${apiKey}`;
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": apiKey,
-      },
-      body: JSON.stringify({
-        input: query,
-        includedPrimaryTypes: ["locality", "administrative_area_level_1", "administrative_area_level_2"],
-      }),
-    });
+    const response = await fetch(url);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -128,32 +117,30 @@ class LocationService {
 
     const data = await response.json();
 
-    if (!data.suggestions) {
+    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+      console.error("Google Places API error:", data.status, data.error_message);
+      throw new Error(`Places API error: ${data.status}`);
+    }
+
+    if (!data.predictions) {
       return [];
     }
 
-    // Transform to simplified format
-    return data.suggestions
-      .filter((s: PlaceSuggestion) => s.placePrediction)
-      .map((s: PlaceSuggestion) => ({
-        placeId: s.placePrediction.placeId,
-        description: s.placePrediction.text.text,
-        mainText: s.placePrediction.structuredFormat?.mainText?.text || s.placePrediction.text.text,
-        secondaryText: s.placePrediction.structuredFormat?.secondaryText?.text || "",
-      }));
+    // Transform legacy API response to our format
+    return data.predictions.map((p: any) => ({
+      placeId: p.place_id,
+      description: p.description,
+      mainText: p.structured_formatting?.main_text || p.description,
+      secondaryText: p.structured_formatting?.secondary_text || "",
+    }));
   }
 
-  // Get place details (coordinates) from place_id using NEW API
+  // Get place details (coordinates) from place_id using Legacy API
   async getPlaceDetails(placeId: string): Promise<PlaceDetailsResponse> {
-    const url = `https://places.googleapis.com/v1/places/${placeId}`;
+    const apiKey = ENV.GOOGLE_PLACES_API_KEY;
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,name,formatted_address,address_components&key=${apiKey}`;
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "X-Goog-Api-Key": ENV.GOOGLE_PLACES_API_KEY,
-        "X-Goog-FieldMask": "location,displayName,formattedAddress,addressComponents",
-      },
-    });
+    const response = await fetch(url);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -161,7 +148,29 @@ class LocationService {
       throw new Error(`Place details failed: ${response.status}`);
     }
 
-    return response.json();
+    const data = await response.json();
+
+    if (data.status !== "OK") {
+      console.error("Google Places details API error:", data.status, data.error_message);
+      throw new Error(`Place details API error: ${data.status}`);
+    }
+
+    // Transform legacy response to match our interface
+    return {
+      location: {
+        latitude: data.result.geometry.location.lat,
+        longitude: data.result.geometry.location.lng,
+      },
+      displayName: {
+        text: data.result.name,
+      },
+      formattedAddress: data.result.formatted_address,
+      addressComponents: data.result.address_components?.map((c: any) => ({
+        longText: c.long_name,
+        shortText: c.short_name,
+        types: c.types,
+      })) || [],
+    };
   }
 
   // Add a place from Google Places search
