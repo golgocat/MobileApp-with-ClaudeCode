@@ -110,7 +110,7 @@ class WeatherService {
       8: '☁', // Dreary
       9: '🌞', // Reserved - treat as sunny
       10: '🌞', // Reserved - treat as sunny
-      11: '🌫', // Fog
+      11: '☁', // Fog
       12: '🌧', // Showers
       13: '🌦', // Mostly Cloudy w/ Showers
       14: '🌦', // Partly Sunny w/ Showers
@@ -134,7 +134,7 @@ class WeatherService {
       34: '🌙', // Mostly Clear (night)
       35: '☁', // Partly Cloudy (night)
       36: '☁', // Intermittent Clouds (night)
-      37: '🌫', // Hazy Moonlight
+      37: '🌙', // Hazy Moonlight
       38: '☁', // Mostly Cloudy (night)
       39: '🌧', // Partly Cloudy w/ Showers (night)
       40: '🌧', // Mostly Cloudy w/ Showers (night)
