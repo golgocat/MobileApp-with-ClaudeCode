@@ -100,7 +100,7 @@ export default function WeatherScreen() {
 
           {/* Daily Forecast */}
           {weather?.daily && weather.daily.length > 0 && (
-            <DailyForecast daily={weather.daily} />
+            <DailyForecast daily={weather.daily} destinationId={selectedLocation.id} />
           )}
 
           {/* Weather Details */}

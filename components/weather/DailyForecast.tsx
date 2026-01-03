@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { router } from "expo-router";
 import { DailyForecast as DailyForecastType } from "../../types/weather.types";
 import { weatherService } from "../../services/weatherService";
 import { COLORS } from "../../constants/theme";
@@ -6,6 +7,7 @@ import { GlassCard } from "../ui";
 
 interface DailyForecastProps {
   daily: DailyForecastType[];
+  destinationId: string;
 }
 
 // Temperature bar color based on temperature
@@ -20,11 +22,12 @@ function getTempBarColors(low: number, high: number): { left: string; right: str
   return { left: getColor(low), right: getColor(high) };
 }
 
-function DayItem({ item, isToday, minTemp, maxTemp }: {
+function DayItem({ item, isToday, minTemp, maxTemp, onPress }: {
   item: DailyForecastType;
   isToday: boolean;
   minTemp: number;
   maxTemp: number;
+  onPress: () => void;
 }) {
   const emoji = weatherService.getWeatherEmoji(item.Day.Icon);
   const high = Math.round(item.Temperature.Maximum.Value);
@@ -42,7 +45,10 @@ function DayItem({ item, isToday, minTemp, maxTemp }: {
   const colors = getTempBarColors(low, high);
 
   return (
-    <View style={styles.dayItem}>
+    <Pressable
+      style={({ pressed }) => [styles.dayItem, pressed && styles.dayItemPressed]}
+      onPress={onPress}
+    >
       <Text style={styles.dayName}>{dayName}</Text>
       <Text style={styles.emoji}>{emoji}</Text>
 
@@ -68,17 +74,29 @@ function DayItem({ item, isToday, minTemp, maxTemp }: {
         <Text style={styles.tempSeparator}>/</Text>
         <Text style={styles.lowTemp}>{low}°</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-export function DailyForecast({ daily }: DailyForecastProps) {
+export function DailyForecast({ daily, destinationId }: DailyForecastProps) {
   const temps = daily.flatMap((d) => [
     d.Temperature.Maximum.Value,
     d.Temperature.Minimum.Value,
   ]);
   const minTemp = Math.min(...temps);
   const maxTemp = Math.max(...temps);
+
+  const handleDayPress = (item: DailyForecastType) => {
+    const dateStr = item.Date.slice(0, 10); // YYYY-MM-DD
+    router.push({
+      pathname: "/weather/[date]",
+      params: {
+        date: dateStr,
+        destinationId,
+        dailyJson: JSON.stringify(item),
+      },
+    } as any);
+  };
 
   return (
     <View style={styles.container}>
@@ -91,6 +109,7 @@ export function DailyForecast({ daily }: DailyForecastProps) {
             isToday={index === 0}
             minTemp={minTemp}
             maxTemp={maxTemp}
+            onPress={() => handleDayPress(item)}
           />
         ))}
       </GlassCard>
@@ -118,6 +137,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  dayItemPressed: {
+    backgroundColor: "rgba(0,0,0,0.03)",
   },
   dayName: {
     width: 50,
