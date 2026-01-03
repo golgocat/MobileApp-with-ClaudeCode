@@ -1,4 +1,4 @@
-import { getDailyForecast5 } from "./forecastService";
+import { getDailyForecast10 } from "./forecastService";
 import {
   buildRainRiskPrompt,
   generateGeminiContent,
@@ -18,8 +18,8 @@ export async function generateTravelRiskReport(args: {
 }): Promise<RiskReportResult> {
   const { destination, itinerary } = args;
 
-  // Fetch forecasts (using 5-day which is available with Core Weather Standard)
-  const allForecasts = await getDailyForecast5(destination.accuweatherLocationKey);
+  // Fetch forecasts (using 10-day forecast)
+  const allForecasts = await getDailyForecast10(destination.accuweatherLocationKey);
 
   // Filter to trip dates
   const tripForecasts = allForecasts.filter((f) =>

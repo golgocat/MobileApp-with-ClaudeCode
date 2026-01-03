@@ -55,7 +55,7 @@ class WeatherService {
   }
 
   async getDailyForecast(locationKey: string = DEFAULT_LOCATION_KEY): Promise<DailyForecastResponse> {
-    const url = `${BASE_URL}/forecasts/v1/daily/5day/${locationKey}?apikey=${API_KEY}&metric=true&details=false`;
+    const url = `${BASE_URL}/forecasts/v1/daily/10day/${locationKey}?apikey=${API_KEY}&metric=true&details=false`;
 
     const response = await this.fetchWithTimeout(url);
 
@@ -67,7 +67,7 @@ class WeatherService {
   }
 
   async getDailyForecastWithDetails(locationKey: string = DEFAULT_LOCATION_KEY): Promise<DailyForecastResponse> {
-    const url = `${BASE_URL}/forecasts/v1/daily/5day/${locationKey}?apikey=${API_KEY}&metric=true&details=true`;
+    const url = `${BASE_URL}/forecasts/v1/daily/10day/${locationKey}?apikey=${API_KEY}&metric=true&details=true`;
 
     const response = await this.fetchWithTimeout(url);
 
