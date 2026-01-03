@@ -24,6 +24,16 @@ function calculateCorrectRiskLevel(maxPrecipProb: number): DayRiskLevel {
 }
 
 /**
+ * Get the correct rain intensity description based on mm
+ */
+function getRainIntensityWord(mm: number): string {
+  if (mm < 2.5) return "light";
+  if (mm < 7.5) return "moderate";
+  if (mm < 15) return "heavy";
+  return "very heavy";
+}
+
+/**
  * Validate and correct risk levels to match actual forecast data
  * This is a safety net for AI hallucinations
  */
@@ -39,6 +49,8 @@ function validateAndCorrectRiskLevels(
       forecast.precipProbabilityDay ?? 0,
       forecast.precipProbabilityNight ?? 0
     );
+    const totalMm = (forecast.precipAmountMmDay ?? 0) + (forecast.precipAmountMmNight ?? 0);
+    const correctIntensity = getRainIntensityWord(totalMm);
 
     const correctRiskLevel = calculateCorrectRiskLevel(maxPrecipProb);
 
@@ -48,14 +60,25 @@ function validateAndCorrectRiskLevels(
         `Correcting risk level for ${day.date}: AI said ${day.riskLevel} but data shows ${maxPrecipProb}% precip (should be ${correctRiskLevel})`
       );
       day.riskLevel = correctRiskLevel;
+    }
 
-      // Also fix advice if it mentions rain but there's none expected
-      if (maxPrecipProb < 20 && /rain|wet|umbrella|shower/i.test(day.advice)) {
-        day.advice = day.advice
-          .replace(/expect(ing)? rain/gi, "clear skies expected")
-          .replace(/bring an umbrella/gi, "enjoy the clear weather")
-          .replace(/rain overnight/gi, "clear overnight");
-      }
+    // Fix advice if it mentions rain but there's none expected
+    if (maxPrecipProb < 20 && /rain|wet|umbrella|shower/i.test(day.advice)) {
+      day.advice = day.advice
+        .replace(/expect(ing)? (heavy |light |moderate )?rain/gi, "clear skies expected")
+        .replace(/bring an umbrella/gi, "enjoy the clear weather")
+        .replace(/(heavy |light |moderate )?rain overnight/gi, "clear overnight");
+    }
+
+    // Fix incorrect rain intensity descriptions (e.g., "heavy rain" when it's actually light)
+    if (maxPrecipProb >= 20 && totalMm < 7.5) {
+      // If rain is expected but it's light/moderate, fix "heavy" descriptions
+      day.advice = day.advice
+        .replace(/heavy rain/gi, `${correctIntensity} rain`)
+        .replace(/very heavy rain/gi, `${correctIntensity} rain`);
+      day.rationale = day.rationale
+        .replace(/heavy rain/gi, `${correctIntensity} rain`)
+        .replace(/very heavy rain/gi, `${correctIntensity} rain`);
     }
   }
 }
