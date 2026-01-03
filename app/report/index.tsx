@@ -12,9 +12,43 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTravelRisk } from "../../hooks/useTravelRisk";
 import { getDestination } from "../../constants/destinations";
-import { DestinationId, DayRisk, DayRiskLevel } from "../../types/travel.types";
+import { DestinationId, DayRisk, DayRiskLevel, DayForecast } from "../../types/travel.types";
 import { formatDate } from "../../utils/dateRange";
 import { COLORS, GRADIENTS, SHADOWS } from "../../constants/theme";
+
+// Temperature level helpers
+type TempLevel = "Extremely Cold" | "Cold" | "Cool" | "Moderate" | "Warm" | "Hot" | "Extremely Hot";
+
+function getTempLevel(avgTemp: number): { level: TempLevel; emoji: string; color: string } {
+  if (avgTemp < 0) return { level: "Extremely Cold", emoji: "🥶", color: "#3b82f6" };
+  if (avgTemp < 10) return { level: "Cold", emoji: "❄️", color: "#60a5fa" };
+  if (avgTemp < 18) return { level: "Cool", emoji: "🌬️", color: "#67e8f9" };
+  if (avgTemp < 24) return { level: "Moderate", emoji: "😊", color: "#22c55e" };
+  if (avgTemp < 30) return { level: "Warm", emoji: "☀️", color: "#fbbf24" };
+  if (avgTemp < 38) return { level: "Hot", emoji: "🔥", color: "#f97316" };
+  return { level: "Extremely Hot", emoji: "🥵", color: "#ef4444" };
+}
+
+// Wind level helpers
+type WindLevel = "Calm" | "Light" | "Moderate" | "Strong" | "Very Strong";
+
+function getWindLevel(avgWindKmh: number): { level: WindLevel; emoji: string; color: string } {
+  if (avgWindKmh < 5) return { level: "Calm", emoji: "🍃", color: "#22c55e" };
+  if (avgWindKmh < 20) return { level: "Light", emoji: "🌿", color: "#84cc16" };
+  if (avgWindKmh < 40) return { level: "Moderate", emoji: "💨", color: "#fbbf24" };
+  if (avgWindKmh < 60) return { level: "Strong", emoji: "🌬️", color: "#f97316" };
+  return { level: "Very Strong", emoji: "🌪️", color: "#ef4444" };
+}
+
+// Calculate trip length
+function getTripLength(startDate: string, endDate: string): { nights: number; days: number } {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const days = nights + 1;
+  return { nights, days };
+}
 
 const RISK_COLORS: Record<DayRiskLevel, string> = {
   LOW: "#22c55e",
@@ -53,9 +87,11 @@ interface TripInsights {
   bestDay: DayRisk | null;
   cautionDays: number;
   recommendation: string;
+  tempInfo: { level: TempLevel; emoji: string; color: string; avgTemp: number } | null;
+  windInfo: { level: WindLevel; emoji: string; color: string; avgWind: number } | null;
 }
 
-function computeTripInsights(days: DayRisk[]): TripInsights {
+function computeTripInsights(days: DayRisk[], forecasts: DayForecast[]): TripInsights {
   if (days.length === 0) {
     return {
       overallVerdict: "No data",
@@ -66,7 +102,31 @@ function computeTripInsights(days: DayRisk[]): TripInsights {
       bestDay: null,
       cautionDays: 0,
       recommendation: "Unable to analyze trip.",
+      tempInfo: null,
+      windInfo: null,
     };
+  }
+
+  // Calculate average temperature from forecasts
+  let tempInfo: TripInsights["tempInfo"] = null;
+  const tempValues = forecasts
+    .filter(f => f.tempMinC != null && f.tempMaxC != null)
+    .map(f => ((f.tempMinC ?? 0) + (f.tempMaxC ?? 0)) / 2);
+  if (tempValues.length > 0) {
+    const avgTemp = tempValues.reduce((a, b) => a + b, 0) / tempValues.length;
+    const levelInfo = getTempLevel(avgTemp);
+    tempInfo = { ...levelInfo, avgTemp: Math.round(avgTemp) };
+  }
+
+  // Calculate average wind from forecasts
+  let windInfo: TripInsights["windInfo"] = null;
+  const windValues = forecasts
+    .filter(f => f.windSpeedKmh != null)
+    .map(f => f.windSpeedKmh ?? 0);
+  if (windValues.length > 0) {
+    const avgWind = windValues.reduce((a, b) => a + b, 0) / windValues.length;
+    const levelInfo = getWindLevel(avgWind);
+    windInfo = { ...levelInfo, avgWind: Math.round(avgWind) };
   }
 
   // Calculate average risk score
@@ -143,6 +203,8 @@ function computeTripInsights(days: DayRisk[]): TripInsights {
     bestDay,
     cautionDays,
     recommendation,
+    tempInfo,
+    windInfo,
   };
 }
 
@@ -278,11 +340,19 @@ export default function ReportScreen() {
           <Text style={styles.headerDates}>
             {formatDate(params.startDate)} — {formatDate(params.endDate)}
           </Text>
+          {(() => {
+            const { nights, days } = getTripLength(params.startDate, params.endDate);
+            return (
+              <Text style={styles.headerTripLength}>
+                {nights} {nights === 1 ? "night" : "nights"} {days} {days === 1 ? "day" : "days"}
+              </Text>
+            );
+          })()}
         </View>
 
         {/* Trip Overview */}
         {report && (() => {
-          const insights = computeTripInsights(report.days);
+          const insights = computeTripInsights(report.days, forecastDays || []);
           return (
             <View style={styles.summaryCard}>
               {/* Verdict Header */}
@@ -319,6 +389,32 @@ export default function ReportScreen() {
                         {insights.totalRainMm.min === insights.totalRainMm.max
                           ? `${insights.totalRainMm.min.toFixed(0)} mm`
                           : `${insights.totalRainMm.min.toFixed(0)}-${insights.totalRainMm.max.toFixed(0)} mm`}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Temperature */}
+                {insights.tempInfo && (
+                  <View style={styles.insightItem}>
+                    <Text style={styles.insightIcon}>{insights.tempInfo.emoji}</Text>
+                    <View style={styles.insightContent}>
+                      <Text style={styles.insightLabel}>Temperature</Text>
+                      <Text style={[styles.insightValue, { color: insights.tempInfo.color }]}>
+                        {insights.tempInfo.level}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Wind */}
+                {insights.windInfo && (
+                  <View style={styles.insightItem}>
+                    <Text style={styles.insightIcon}>{insights.windInfo.emoji}</Text>
+                    <View style={styles.insightContent}>
+                      <Text style={styles.insightLabel}>Wind</Text>
+                      <Text style={[styles.insightValue, { color: insights.windInfo.color }]}>
+                        {insights.windInfo.level}
                       </Text>
                     </View>
                   </View>
@@ -476,6 +572,12 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: 14,
     marginTop: 4,
+  },
+  headerTripLength: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    marginTop: 2,
+    fontWeight: "500",
   },
   summaryCard: {
     backgroundColor: COLORS.glassBackground,

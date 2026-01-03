@@ -16,6 +16,13 @@ interface AccuDailyResponse {
       TotalLiquid?: { Value?: number; Unit?: string };
       IconPhrase?: string;
       Icon?: number;
+      Wind?: {
+        Speed?: { Value?: number; Unit?: string };
+        Direction?: { Localized?: string; English?: string };
+      };
+      WindGust?: {
+        Speed?: { Value?: number; Unit?: string };
+      };
     };
     Night?: {
       RainProbability?: number;
@@ -23,6 +30,13 @@ interface AccuDailyResponse {
       TotalLiquid?: { Value?: number; Unit?: string };
       IconPhrase?: string;
       Icon?: number;
+      Wind?: {
+        Speed?: { Value?: number; Unit?: string };
+        Direction?: { Localized?: string; English?: string };
+      };
+      WindGust?: {
+        Speed?: { Value?: number; Unit?: string };
+      };
     };
   }>;
 }
@@ -89,6 +103,15 @@ export async function getDailyForecast15(locationKey: string): Promise<DayForeca
   }
 }
 
+function toKmh(value: number, unit?: string): number {
+  if (!unit) return value;
+  const u = unit.toLowerCase();
+  if (u === "km/h") return value;
+  if (u === "mi/h" || u === "mph") return value * 1.60934;
+  if (u === "m/s") return value * 3.6;
+  return value;
+}
+
 function mapForecasts(json: AccuDailyResponse): DayForecast[] {
   return (json.DailyForecasts ?? []).map((d) => {
     const date = toYyyyMmDd(d.Date);
@@ -105,6 +128,13 @@ function mapForecasts(json: AccuDailyResponse): DayForecast[] {
     const nightLiquid = d.Night?.TotalLiquid?.Value;
     const nightLiquidUnit = d.Night?.TotalLiquid?.Unit;
 
+    // Wind data - use day values, fall back to night
+    const windSpeed = d.Day?.Wind?.Speed?.Value ?? d.Night?.Wind?.Speed?.Value;
+    const windSpeedUnit = d.Day?.Wind?.Speed?.Unit ?? d.Night?.Wind?.Speed?.Unit;
+    const windGust = d.Day?.WindGust?.Speed?.Value ?? d.Night?.WindGust?.Speed?.Value;
+    const windGustUnit = d.Day?.WindGust?.Speed?.Unit ?? d.Night?.WindGust?.Speed?.Unit;
+    const windDirection = d.Day?.Wind?.Direction?.English ?? d.Night?.Wind?.Direction?.English;
+
     return {
       date,
       precipProbabilityDay: dayRainProb,
@@ -115,6 +145,9 @@ function mapForecasts(json: AccuDailyResponse): DayForecast[] {
       tempMaxC: max?.Value != null ? toC(max.Value, max.Unit) : null,
       iconPhraseDay: d.Day?.IconPhrase,
       iconPhraseNight: d.Night?.IconPhrase,
+      windSpeedKmh: windSpeed != null ? toKmh(windSpeed, windSpeedUnit) : null,
+      windGustKmh: windGust != null ? toKmh(windGust, windGustUnit) : null,
+      windDirection: windDirection ?? null,
       raw: d,
     };
   });

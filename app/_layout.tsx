@@ -24,7 +24,7 @@ export default function RootLayout() {
             headerStyle: { backgroundColor: COLORS.gradientStart },
             headerTintColor: COLORS.textPrimary,
             headerTitleStyle: { fontWeight: "600" },
-            headerBackTitle: "",
+            headerBackTitle: " ",
             headerShadowVisible: false,
           }}
         />
@@ -36,7 +36,7 @@ export default function RootLayout() {
             headerStyle: { backgroundColor: COLORS.gradientStart },
             headerTintColor: COLORS.textPrimary,
             headerTitleStyle: { fontWeight: "600" },
-            headerBackTitle: "",
+            headerBackTitle: " ",
             headerShadowVisible: false,
           }}
         />
@@ -48,7 +48,7 @@ export default function RootLayout() {
             headerStyle: { backgroundColor: COLORS.gradientStart },
             headerTintColor: COLORS.textPrimary,
             headerTitleStyle: { fontWeight: "600" },
-            headerBackTitle: "",
+            headerBackTitle: " ",
             headerShadowVisible: false,
           }}
         />

@@ -37,6 +37,9 @@ export interface DayForecast {
   tempMaxC: number | null;
   iconPhraseDay?: string;
   iconPhraseNight?: string;
+  windSpeedKmh?: number | null; // Average wind speed
+  windGustKmh?: number | null;  // Wind gusts
+  windDirection?: string | null; // Wind direction (e.g., "NW")
   raw?: unknown;
 }
 
