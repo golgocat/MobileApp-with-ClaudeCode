@@ -102,13 +102,16 @@ class LocationService {
       return [];
     }
 
+    const apiKey = ENV.GOOGLE_PLACES_API_KEY;
+    console.log("Google Places API Key:", apiKey ? `${apiKey.substring(0, 10)}...` : "EMPTY");
+
     const url = "https://places.googleapis.com/v1/places:autocomplete";
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Goog-Api-Key": ENV.GOOGLE_PLACES_API_KEY,
+        "X-Goog-Api-Key": apiKey,
       },
       body: JSON.stringify({
         input: query,
