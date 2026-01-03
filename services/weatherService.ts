@@ -66,6 +66,18 @@ class WeatherService {
     return response.json();
   }
 
+  async getDailyForecastWithDetails(locationKey: string = DEFAULT_LOCATION_KEY): Promise<DailyForecastResponse> {
+    const url = `${BASE_URL}/forecasts/v1/daily/5day/${locationKey}?apikey=${API_KEY}&metric=true&details=true`;
+
+    const response = await this.fetchWithTimeout(url);
+
+    if (!response.ok) {
+      throw new Error(`Daily forecast fetch failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
   async getAllWeatherData(locationKey: string = DEFAULT_LOCATION_KEY): Promise<WeatherData> {
     const [current, hourly, dailyResponse] = await Promise.all([
       this.getCurrentConditions(locationKey),

@@ -158,12 +158,26 @@ function StatsRow({
     rainWindow = `Around ${rainyHours[0].DateTime.slice(11, 16)}`;
   }
 
-  // Get wind info from hourly data
-  const windSpeeds = hourlyData.map(h => h.Wind?.Speed?.Value ?? 0);
-  const avgWind = hourlyData.length > 0
-    ? windSpeeds.reduce((sum, v) => sum + v, 0) / hourlyData.length
-    : 0;
-  const maxWind = hourlyData.length > 0 ? Math.max(...windSpeeds) : 0;
+  // Get wind info - prefer daily forecast data for accurate gust, fallback to hourly
+  const dailyWindSpeed = dailyForecast?.Day?.Wind?.Speed?.Value;
+  const dailyWindGust = dailyForecast?.Day?.WindGust?.Speed?.Value;
+
+  // Use daily forecast wind if available, otherwise calculate from hourly
+  let avgWind: number;
+  let gustWind: number | null;
+
+  if (dailyWindSpeed != null) {
+    avgWind = dailyWindSpeed;
+    gustWind = dailyWindGust ?? null;
+  } else {
+    // Fallback to hourly data
+    const windSpeeds = hourlyData.map(h => h.Wind?.Speed?.Value ?? 0);
+    avgWind = hourlyData.length > 0
+      ? windSpeeds.reduce((sum, v) => sum + v, 0) / hourlyData.length
+      : 0;
+    gustWind = null; // No accurate gust from hourly
+  }
+
   const windInfo = avgWind > 0 ? getWindLevel(avgWind) : null;
 
   return (
@@ -194,7 +208,7 @@ function StatsRow({
                 {windInfo.emoji} {windInfo.level}
               </Text>
               <Text style={[styles.statSubValue, { color: windInfo.color }]}>
-                {avgWind.toFixed(0)} km/h{maxWind > avgWind && ` (gust ${maxWind.toFixed(0)})`}
+                {avgWind.toFixed(0)} km/h{gustWind != null && ` (gust ${gustWind.toFixed(0)})`}
               </Text>
             </>
           ) : (
@@ -271,32 +285,50 @@ export default function WeatherDayDetailScreen() {
   }>();
 
   const [hourlyData, setHourlyData] = useState<HourlyForecast[]>([]);
+  const [dailyForecast, setDailyForecast] = useState<DailyForecast | null>(null);
   const [loading, setLoading] = useState(true);
 
   const destination = getDestination(params.destinationId as DestinationId);
 
-  let dailyForecast: DailyForecast | null = null;
-  try {
-    dailyForecast = JSON.parse(params.dailyJson || "null");
-  } catch (e) {
-    console.error("Failed to parse daily forecast:", e);
-  }
-
-  // Fetch hourly forecast
+  // Parse initial daily forecast from params (basic data)
   useEffect(() => {
-    async function fetchHourly() {
+    try {
+      const parsed = JSON.parse(params.dailyJson || "null");
+      if (parsed) setDailyForecast(parsed);
+    } catch (e) {
+      console.error("Failed to parse daily forecast:", e);
+    }
+  }, [params.dailyJson]);
+
+  // Fetch hourly forecast and detailed daily forecast (with wind data)
+  useEffect(() => {
+    async function fetchData() {
       if (!destination) return;
       try {
-        const data = await weatherService.getHourlyForecast(destination.accuweatherLocationKey);
-        setHourlyData(data);
+        // Fetch both hourly and detailed daily forecast
+        const [hourlyResult, dailyResult] = await Promise.all([
+          weatherService.getHourlyForecast(destination.accuweatherLocationKey),
+          weatherService.getDailyForecastWithDetails(destination.accuweatherLocationKey),
+        ]);
+
+        setHourlyData(hourlyResult);
+
+        // Find the matching day from detailed forecast
+        const targetDate = params.date.slice(0, 10);
+        const matchingDay = dailyResult.DailyForecasts.find(
+          d => d.Date.slice(0, 10) === targetDate
+        );
+        if (matchingDay) {
+          setDailyForecast(matchingDay);
+        }
       } catch (e) {
-        console.warn("Failed to fetch hourly forecast:", e);
+        console.warn("Failed to fetch forecast data:", e);
       } finally {
         setLoading(false);
       }
     }
-    fetchHourly();
-  }, [destination?.accuweatherLocationKey]);
+    fetchData();
+  }, [destination?.accuweatherLocationKey, params.date]);
 
   const formatDisplayDate = (dateStr: string) => {
     const date = new Date(dateStr);

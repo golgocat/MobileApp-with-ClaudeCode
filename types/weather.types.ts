@@ -112,6 +112,22 @@ export interface DailyForecast {
     HasPrecipitation: boolean;
     PrecipitationType?: string;
     PrecipitationIntensity?: string;
+    Wind?: {
+      Speed: {
+        Value: number;
+        Unit: string;
+      };
+      Direction: {
+        Degrees: number;
+        Localized: string;
+      };
+    };
+    WindGust?: {
+      Speed: {
+        Value: number;
+        Unit: string;
+      };
+    };
   };
   Night: {
     Icon: number;
@@ -119,6 +135,22 @@ export interface DailyForecast {
     HasPrecipitation: boolean;
     PrecipitationType?: string;
     PrecipitationIntensity?: string;
+    Wind?: {
+      Speed: {
+        Value: number;
+        Unit: string;
+      };
+      Direction: {
+        Degrees: number;
+        Localized: string;
+      };
+    };
+    WindGust?: {
+      Speed: {
+        Value: number;
+        Unit: string;
+      };
+    };
   };
 }
 
