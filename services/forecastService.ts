@@ -61,10 +61,10 @@ function toYyyyMmDd(dateIso: string): string {
   return dateIso.slice(0, 10);
 }
 
-export async function getDailyForecast10(locationKey: string): Promise<DayForecast[]> {
+export async function getDailyForecast5(locationKey: string): Promise<DayForecast[]> {
   const apiKey = ENV.ACCUWEATHER_API_KEY;
 
-  const url = `${BASE_URL}/forecasts/v1/daily/10day/${locationKey}?apikey=${encodeURIComponent(apiKey)}&metric=true&details=true`;
+  const url = `${BASE_URL}/forecasts/v1/daily/5day/${locationKey}?apikey=${encodeURIComponent(apiKey)}&metric=true&details=true`;
 
   const res = await fetch(url);
   if (!res.ok) {
@@ -86,10 +86,10 @@ export async function getDailyForecast15(locationKey: string): Promise<DayForeca
 
     const res = await fetch(url);
     if (!res.ok) {
-      // If 15-day not available, fall back to 10-day
+      // If 15-day not available, fall back to 5-day
       if (res.status === 401 || res.status === 403) {
-        console.warn("15-day forecast not available, falling back to 10-day");
-        return getDailyForecast10(locationKey);
+        console.warn("15-day forecast not available, falling back to 5-day");
+        return getDailyForecast5(locationKey);
       }
       const text = await res.text();
       throw new Error(`AccuWeather error ${res.status}: ${text}`);
@@ -98,8 +98,8 @@ export async function getDailyForecast15(locationKey: string): Promise<DayForeca
     const json = (await res.json()) as AccuDailyResponse;
     return mapForecasts(json);
   } catch (error) {
-    console.warn("15-day forecast failed, falling back to 10-day:", error);
-    return getDailyForecast10(locationKey);
+    console.warn("15-day forecast failed, falling back to 5-day:", error);
+    return getDailyForecast5(locationKey);
   }
 }
 
