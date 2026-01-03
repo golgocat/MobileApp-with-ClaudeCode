@@ -102,8 +102,9 @@ class LocationService {
       return [];
     }
 
-    const apiKey = ENV.GOOGLE_PLACES_API_KEY;
-    console.log("Google Places API Key:", apiKey ? `${apiKey.substring(0, 10)}...` : "EMPTY");
+    // Temporarily hardcode for debugging - will revert once working
+    const apiKey = "AIzaSyDiTrqiMEONi5F3BiVmlsB5HidG4FimLwA";
+    console.log("Google Places API Key (hardcoded):", apiKey.substring(0, 10) + "...");
 
     const url = "https://places.googleapis.com/v1/places:autocomplete";
 
