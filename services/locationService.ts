@@ -2,8 +2,7 @@ import * as Location from "expo-location";
 import { weatherService } from "./weatherService";
 import { locationStorage } from "./locationStorage";
 import { SavedLocation } from "../types/location.types";
-
-const GOOGLE_PLACES_API_KEY = "AIzaSyAI9YXMp5-ZDHNYDNoM42ZDV-tw2aWmzTI";
+import { ENV } from "../config/env";
 
 // New Places API response types
 interface PlaceSuggestion {
@@ -109,7 +108,7 @@ class LocationService {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+        "X-Goog-Api-Key": ENV.GOOGLE_PLACES_API_KEY,
       },
       body: JSON.stringify({
         input: query,
@@ -147,7 +146,7 @@ class LocationService {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+        "X-Goog-Api-Key": ENV.GOOGLE_PLACES_API_KEY,
         "X-Goog-FieldMask": "location,displayName,formattedAddress,addressComponents",
       },
     });
