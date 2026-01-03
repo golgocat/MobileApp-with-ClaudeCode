@@ -141,7 +141,16 @@ export default function WeatherScreen() {
 
           {/* Daily Forecast */}
           {weather?.daily && weather.daily.length > 0 && (
-            <DailyForecast daily={weather.daily} destinationId={selectedLocation.id} />
+            <DailyForecast
+              daily={weather.daily}
+              destination={{
+                id: selectedLocation.id,
+                displayName: selectedLocation.displayName,
+                countryCode: selectedLocation.countryCode,
+                timezone: selectedLocation.timezone,
+                accuweatherLocationKey: selectedLocation.accuweatherLocationKey,
+              }}
+            />
           )}
 
           {/* Weather Details */}

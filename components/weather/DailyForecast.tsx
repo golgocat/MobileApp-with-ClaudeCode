@@ -5,9 +5,17 @@ import { weatherService } from "../../services/weatherService";
 import { COLORS } from "../../constants/theme";
 import { GlassCard } from "../ui";
 
+interface DestinationInfo {
+  id: string;
+  displayName: string;
+  countryCode: string;
+  timezone: string;
+  accuweatherLocationKey: string;
+}
+
 interface DailyForecastProps {
   daily: DailyForecastType[];
-  destinationId: string;
+  destination: DestinationInfo;
 }
 
 // Temperature bar color based on temperature
@@ -81,7 +89,7 @@ function DayItem({ item, isToday, minTemp, maxTemp, onPress }: {
   );
 }
 
-export function DailyForecast({ daily, destinationId }: DailyForecastProps) {
+export function DailyForecast({ daily, destination }: DailyForecastProps) {
   const temps = daily.flatMap((d) => [
     d.Temperature.Maximum.Value,
     d.Temperature.Minimum.Value,
@@ -95,7 +103,11 @@ export function DailyForecast({ daily, destinationId }: DailyForecastProps) {
       pathname: "/weather/[date]",
       params: {
         date: dateStr,
-        destinationId,
+        destinationId: destination.id,
+        destinationKey: destination.accuweatherLocationKey,
+        destinationName: destination.displayName,
+        destinationCountry: destination.countryCode,
+        destinationTimezone: destination.timezone,
         dailyJson: JSON.stringify(item),
       },
     } as any);
