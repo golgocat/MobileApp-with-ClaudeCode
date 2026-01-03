@@ -9,6 +9,7 @@ interface HourlyForecastProps {
 }
 
 function HourlyItem({ item, isFirst }: { item: HourlyForecastType; isFirst: boolean }) {
+  console.log('HourlyItem WeatherIcon:', item.WeatherIcon, 'IconPhrase:', item.IconPhrase);
   const emoji = weatherService.getWeatherEmoji(item.WeatherIcon);
   const temp = Math.round(item.Temperature.Value);
   const time = new Date(item.DateTime);
