@@ -159,9 +159,11 @@ function StatsRow({
   }
 
   // Get wind info from hourly data
+  const windSpeeds = hourlyData.map(h => h.Wind?.Speed?.Value ?? 0);
   const avgWind = hourlyData.length > 0
-    ? hourlyData.reduce((sum, h) => sum + (h.Wind?.Speed?.Value ?? 0), 0) / hourlyData.length
+    ? windSpeeds.reduce((sum, v) => sum + v, 0) / hourlyData.length
     : 0;
+  const maxWind = hourlyData.length > 0 ? Math.max(...windSpeeds) : 0;
   const windInfo = avgWind > 0 ? getWindLevel(avgWind) : null;
 
   return (
@@ -192,7 +194,7 @@ function StatsRow({
                 {windInfo.emoji} {windInfo.level}
               </Text>
               <Text style={[styles.statSubValue, { color: windInfo.color }]}>
-                {avgWind.toFixed(0)} km/h
+                {avgWind.toFixed(0)} km/h{maxWind > avgWind && ` (gust ${maxWind.toFixed(0)})`}
               </Text>
             </>
           ) : (

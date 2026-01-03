@@ -236,6 +236,7 @@ function StatsRow({
             </Text>
             <Text style={[styles.statSubValue, { color: windInfo.color }]}>
               {dayForecast?.windSpeedKmh?.toFixed(0)} km/h
+              {dayForecast?.windGustKmh != null && ` (gust ${dayForecast.windGustKmh.toFixed(0)})`}
             </Text>
           </>
         ) : (
