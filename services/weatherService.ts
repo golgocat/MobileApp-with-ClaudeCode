@@ -100,49 +100,49 @@ class WeatherService {
 
   getWeatherEmoji(iconNumber: number): string {
     const emojiMap: Record<number, string> = {
-      1: '☀️', // Sunny
-      2: '☀️', // Mostly Sunny
+      1: '🌞', // Sunny
+      2: '🌞', // Mostly Sunny
       3: '⛅', // Partly Sunny
       4: '⛅', // Intermittent Clouds
       5: '⛅', // Hazy Sunshine
-      6: '☁️', // Mostly Cloudy
-      7: '☁️', // Cloudy
-      8: '☁️', // Dreary
-      11: '🌫️', // Fog
-      12: '🌧️', // Showers
-      13: '🌦️', // Mostly Cloudy w/ Showers
-      14: '🌦️', // Partly Sunny w/ Showers
-      15: '⛈️', // T-Storms
-      16: '⛈️', // Mostly Cloudy w/ T-Storms
-      17: '⛈️', // Partly Sunny w/ T-Storms
-      18: '🌧️', // Rain
-      19: '🌨️', // Flurries
-      20: '🌨️', // Mostly Cloudy w/ Flurries
-      21: '🌨️', // Partly Sunny w/ Flurries
-      22: '❄️', // Snow
-      23: '❄️', // Mostly Cloudy w/ Snow
+      6: '☁', // Mostly Cloudy
+      7: '☁', // Cloudy
+      8: '☁', // Dreary
+      11: '🌫', // Fog
+      12: '🌧', // Showers
+      13: '🌦', // Mostly Cloudy w/ Showers
+      14: '🌦', // Partly Sunny w/ Showers
+      15: '⛈', // T-Storms
+      16: '⛈', // Mostly Cloudy w/ T-Storms
+      17: '⛈', // Partly Sunny w/ T-Storms
+      18: '🌧', // Rain
+      19: '🌨', // Flurries
+      20: '🌨', // Mostly Cloudy w/ Flurries
+      21: '🌨', // Partly Sunny w/ Flurries
+      22: '❄', // Snow
+      23: '❄', // Mostly Cloudy w/ Snow
       24: '🧊', // Ice
-      25: '🌨️', // Sleet
-      26: '🌧️', // Freezing Rain
-      29: '🌨️', // Rain and Snow
+      25: '🌨', // Sleet
+      26: '🌧', // Freezing Rain
+      29: '🌨', // Rain and Snow
       30: '🥵', // Hot
       31: '🥶', // Cold
       32: '💨', // Windy
       33: '🌙', // Clear (night)
       34: '🌙', // Mostly Clear (night)
-      35: '☁️', // Partly Cloudy (night)
-      36: '☁️', // Intermittent Clouds (night)
-      37: '🌫️', // Hazy Moonlight
-      38: '☁️', // Mostly Cloudy (night)
-      39: '🌧️', // Partly Cloudy w/ Showers (night)
-      40: '🌧️', // Mostly Cloudy w/ Showers (night)
-      41: '⛈️', // Partly Cloudy w/ T-Storms (night)
-      42: '⛈️', // Mostly Cloudy w/ T-Storms (night)
-      43: '🌨️', // Mostly Cloudy w/ Flurries (night)
-      44: '❄️', // Mostly Cloudy w/ Snow (night)
+      35: '☁', // Partly Cloudy (night)
+      36: '☁', // Intermittent Clouds (night)
+      37: '🌫', // Hazy Moonlight
+      38: '☁', // Mostly Cloudy (night)
+      39: '🌧', // Partly Cloudy w/ Showers (night)
+      40: '🌧', // Mostly Cloudy w/ Showers (night)
+      41: '⛈', // Partly Cloudy w/ T-Storms (night)
+      42: '⛈', // Mostly Cloudy w/ T-Storms (night)
+      43: '🌨', // Mostly Cloudy w/ Flurries (night)
+      44: '❄', // Mostly Cloudy w/ Snow (night)
     };
 
-    return emojiMap[iconNumber] || '🌡️';
+    return emojiMap[iconNumber] || '🌡';
   }
 }
 
