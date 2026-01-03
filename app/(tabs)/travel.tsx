@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
   Pressable,
   ScrollView,
   StyleSheet,
-  Modal,
+  TextInput,
+  ActivityIndicator,
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,10 +14,21 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { DESTINATIONS } from "../../constants/destinations";
-import { Destination } from "../../types/travel.types";
 import { generateId } from "../../utils/dateRange";
 import { CalendarPicker } from "../../components/CalendarPicker";
 import { COLORS, GRADIENTS, SHADOWS } from "../../constants/theme";
+import { locationService, PlacePrediction } from "../../services/locationService";
+
+// Extended destination type for searched locations
+interface TravelDestination {
+  id: string;
+  displayName: string;
+  countryCode: string;
+  timezone: string;
+  accuweatherLocationKey: string;
+  lat: number;
+  lon: number;
+}
 
 function formatDisplayDate(dateStr: string): string {
   if (!dateStr) return "";
@@ -37,13 +49,63 @@ function getDaysBetween(start: string, end: string): number {
 }
 
 export default function TravelScreen() {
-  const [selectedDestination, setSelectedDestination] = useState<Destination>(
-    DESTINATIONS[0] // Default to Dubai
-  );
-  const [showDestinationPicker, setShowDestinationPicker] = useState(false);
+  const [selectedDestination, setSelectedDestination] = useState<TravelDestination | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<PlacePrediction[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [loadingDestination, setLoadingDestination] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const handleSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const results = await locationService.searchPlaces(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  const handleSelectSearchResult = async (prediction: PlacePrediction) => {
+    setLoadingDestination(true);
+    try {
+      const locationDetails = await locationService.getLocationDetails(prediction.placeId);
+      const destination: TravelDestination = {
+        id: `search_${locationDetails.Key}`,
+        displayName: locationDetails.LocalizedName,
+        countryCode: locationDetails.Country.ID,
+        timezone: locationDetails.TimeZone.Name,
+        accuweatherLocationKey: locationDetails.Key,
+        lat: locationDetails.GeoPosition.Latitude,
+        lon: locationDetails.GeoPosition.Longitude,
+      };
+      setSelectedDestination(destination);
+      setSearchQuery("");
+      setSearchResults([]);
+    } catch (error) {
+      console.error("Error loading destination:", error);
+      Alert.alert("Error", "Failed to load destination details. Please try again.");
+    } finally {
+      setLoadingDestination(false);
+    }
+  };
+
+  const handleSelectPreset = (dest: TravelDestination) => {
+    setSelectedDestination(dest);
+    setSearchQuery("");
+    setSearchResults([]);
+  };
 
   const handleSelectDates = (start: string, end: string) => {
     setStartDate(start);
@@ -51,6 +113,10 @@ export default function TravelScreen() {
   };
 
   const handleAnalyze = () => {
+    if (!selectedDestination) {
+      Alert.alert("Select Destination", "Please select a destination first");
+      return;
+    }
     if (!startDate || !endDate) {
       Alert.alert("Select Dates", "Please select your trip dates first");
       return;
@@ -63,6 +129,10 @@ export default function TravelScreen() {
       params: {
         itineraryId,
         destinationId: selectedDestination.id,
+        destinationKey: selectedDestination.accuweatherLocationKey,
+        destinationName: selectedDestination.displayName,
+        destinationCountry: selectedDestination.countryCode,
+        destinationTimezone: selectedDestination.timezone,
         startDate,
         endDate,
       },
@@ -71,6 +141,7 @@ export default function TravelScreen() {
 
   const tripDays = getDaysBetween(startDate, endDate);
   const hasDates = startDate && endDate;
+  const hasDestination = selectedDestination !== null;
 
   return (
     <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
@@ -90,21 +161,90 @@ export default function TravelScreen() {
             </Text>
           </View>
 
-          {/* Destination Picker */}
+          {/* Destination Search */}
           <View style={styles.section}>
             <Text style={styles.label}>Destination</Text>
-            <Pressable
-              style={styles.glassCard}
-              onPress={() => setShowDestinationPicker(true)}
-            >
-              <View style={styles.pickerContent}>
-                <Text style={styles.pickerEmoji}>📍</Text>
-                <Text style={styles.pickerText}>
-                  {selectedDestination.displayName}, {selectedDestination.countryCode}
-                </Text>
+
+            {/* Selected Destination Display */}
+            {selectedDestination && (
+              <View style={styles.selectedDestination}>
+                <Text style={styles.selectedDestinationEmoji}>📍</Text>
+                <View style={styles.selectedDestinationInfo}>
+                  <Text style={styles.selectedDestinationName}>
+                    {selectedDestination.displayName}
+                  </Text>
+                  <Text style={styles.selectedDestinationCountry}>
+                    {selectedDestination.countryCode}
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.clearButton}
+                  onPress={() => setSelectedDestination(null)}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </Pressable>
               </View>
-              <Text style={styles.pickerArrow}>▼</Text>
-            </Pressable>
+            )}
+
+            {/* Search Input */}
+            {!selectedDestination && (
+              <View style={styles.searchSection}>
+                <View style={styles.searchContainer}>
+                  <Text style={styles.searchIcon}>🔍</Text>
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search for a city..."
+                    placeholderTextColor={COLORS.textMuted}
+                    value={searchQuery}
+                    onChangeText={handleSearch}
+                    autoCorrect={false}
+                  />
+                  {(searching || loadingDestination) && (
+                    <ActivityIndicator size="small" color={COLORS.textMuted} />
+                  )}
+                </View>
+
+                {/* Search Results */}
+                {searchResults.length > 0 && (
+                  <View style={styles.searchResults}>
+                    {searchResults.map((result) => (
+                      <Pressable
+                        key={result.placeId}
+                        style={styles.searchResultItem}
+                        onPress={() => handleSelectSearchResult(result)}
+                        disabled={loadingDestination}
+                      >
+                        <Text style={styles.searchResultMain}>
+                          {result.mainText}
+                        </Text>
+                        <Text style={styles.searchResultSecondary}>
+                          {result.secondaryText}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+
+                {/* Quick Picks */}
+                {searchResults.length === 0 && searchQuery.length === 0 && (
+                  <View style={styles.quickPicks}>
+                    <Text style={styles.quickPicksTitle}>Popular Destinations</Text>
+                    <View style={styles.quickPicksGrid}>
+                      {DESTINATIONS.slice(0, 6).map((dest) => (
+                        <Pressable
+                          key={dest.id}
+                          style={styles.quickPickItem}
+                          onPress={() => handleSelectPreset(dest)}
+                        >
+                          <Text style={styles.quickPickName}>{dest.displayName}</Text>
+                          <Text style={styles.quickPickCountry}>{dest.countryCode}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Date Picker */}
@@ -149,15 +289,15 @@ export default function TravelScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.analyzeButton,
-              !hasDates && styles.analyzeButtonDisabled,
-              pressed && hasDates && styles.analyzeButtonPressed,
+              (!hasDates || !hasDestination) && styles.analyzeButtonDisabled,
+              pressed && hasDates && hasDestination && styles.analyzeButtonPressed,
             ]}
             onPress={handleAnalyze}
-            disabled={!hasDates}
+            disabled={!hasDates || !hasDestination}
           >
             <Text style={styles.analyzeButtonIcon}>🔍</Text>
             <Text style={styles.analyzeButtonText}>
-              {hasDates ? "Analyze" : "AI Analysis"}
+              {hasDates && hasDestination ? "Analyze" : "AI Analysis"}
             </Text>
           </Pressable>
 
@@ -191,46 +331,6 @@ export default function TravelScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-
-      {/* Destination Picker Modal */}
-      <Modal
-        visible={showDestinationPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDestinationPicker(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowDestinationPicker(false)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Destination</Text>
-            {DESTINATIONS.map((dest) => (
-              <Pressable
-                key={dest.id}
-                style={[
-                  styles.modalOption,
-                  selectedDestination.id === dest.id && styles.modalOptionSelected,
-                ]}
-                onPress={() => {
-                  setSelectedDestination(dest);
-                  setShowDestinationPicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    selectedDestination.id === dest.id &&
-                      styles.modalOptionTextSelected,
-                  ]}
-                >
-                  {dest.displayName}, {dest.countryCode}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
 
       {/* Calendar Picker */}
       <CalendarPicker
@@ -299,22 +399,121 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...SHADOWS.card,
   },
-  pickerContent: {
+  // Destination Search styles
+  selectedDestination: {
+    backgroundColor: COLORS.glassBackground,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
+    ...SHADOWS.card,
   },
-  pickerEmoji: {
+  selectedDestinationEmoji: {
     fontSize: 24,
     marginRight: 12,
   },
-  pickerText: {
+  selectedDestinationInfo: {
+    flex: 1,
+  },
+  selectedDestinationName: {
     color: COLORS.textPrimary,
     fontSize: 18,
-    fontWeight: "500",
+    fontWeight: "600",
   },
-  pickerArrow: {
+  selectedDestinationCountry: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  clearButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255, 59, 48, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clearButtonText: {
+    color: "#FF3B30",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  searchSection: {
+    gap: 12,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  searchResults: {
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  searchResultItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  searchResultMain: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: COLORS.textPrimary,
+  },
+  searchResultSecondary: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  quickPicks: {
+    marginTop: 4,
+  },
+  quickPicksTitle: {
     color: COLORS.textMuted,
     fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  quickPicksGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  quickPickItem: {
+    backgroundColor: "rgba(255,255,255,0.8)",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    minWidth: "30%",
+  },
+  quickPickName: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  quickPickCountry: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    marginTop: 2,
   },
   selectedDatesDisplay: {
     flexDirection: "row",
@@ -434,44 +633,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
     lineHeight: 20,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 24,
-    padding: 20,
-    width: "80%",
-    maxWidth: 320,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  modalTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  modalOption: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  modalOptionSelected: {
-    backgroundColor: "rgba(74, 144, 217, 0.15)",
-  },
-  modalOptionText: {
-    color: COLORS.textSecondary,
-    fontSize: 16,
-  },
-  modalOptionTextSelected: {
-    color: COLORS.accentBlue,
-    fontWeight: "600",
   },
 });
