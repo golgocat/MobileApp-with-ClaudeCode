@@ -87,7 +87,7 @@ interface TripInsights {
   bestDay: DayRisk | null;
   cautionDays: number;
   recommendation: string;
-  tempInfo: { level: TempLevel; emoji: string; color: string; avgTemp: number } | null;
+  tempInfo: { level: TempLevel; emoji: string; color: string; avgTemp: number; minTemp: number; maxTemp: number } | null;
   windInfo: { level: WindLevel; emoji: string; color: string; avgWind: number } | null;
 }
 
@@ -107,15 +107,17 @@ function computeTripInsights(days: DayRisk[], forecasts: DayForecast[]): TripIns
     };
   }
 
-  // Calculate average temperature from forecasts
+  // Calculate temperature stats from forecasts
   let tempInfo: TripInsights["tempInfo"] = null;
-  const tempValues = forecasts
-    .filter(f => f.tempMinC != null && f.tempMaxC != null)
-    .map(f => ((f.tempMinC ?? 0) + (f.tempMaxC ?? 0)) / 2);
-  if (tempValues.length > 0) {
-    const avgTemp = tempValues.reduce((a, b) => a + b, 0) / tempValues.length;
+  const validForecasts = forecasts.filter(f => f.tempMinC != null && f.tempMaxC != null);
+  if (validForecasts.length > 0) {
+    const allMins = validForecasts.map(f => f.tempMinC ?? 0);
+    const allMaxs = validForecasts.map(f => f.tempMaxC ?? 0);
+    const minTemp = Math.round(Math.min(...allMins));
+    const maxTemp = Math.round(Math.max(...allMaxs));
+    const avgTemp = (minTemp + maxTemp) / 2;
     const levelInfo = getTempLevel(avgTemp);
-    tempInfo = { ...levelInfo, avgTemp: Math.round(avgTemp) };
+    tempInfo = { ...levelInfo, avgTemp: Math.round(avgTemp), minTemp, maxTemp };
   }
 
   // Calculate average wind from forecasts
@@ -403,6 +405,9 @@ export default function ReportScreen() {
                       <Text style={[styles.insightValue, { color: insights.tempInfo.color }]}>
                         {insights.tempInfo.level}
                       </Text>
+                      <Text style={styles.insightSubValue}>
+                        {insights.tempInfo.minTemp}° – {insights.tempInfo.maxTemp}°C
+                      </Text>
                     </View>
                   </View>
                 )}
@@ -640,6 +645,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     marginTop: 1,
+  },
+  insightSubValue: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    marginTop: 2,
   },
   dayDistribution: {
     flexDirection: "row",

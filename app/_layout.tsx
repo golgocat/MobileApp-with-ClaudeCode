@@ -20,7 +20,7 @@ export default function RootLayout() {
           name="report/index"
           options={{
             headerShown: true,
-            headerTitle: "Rain Risk Report",
+            headerTitle: "Weather Analysis",
             headerStyle: { backgroundColor: COLORS.gradientStart },
             headerTintColor: COLORS.textPrimary,
             headerTitleStyle: { fontWeight: "600" },

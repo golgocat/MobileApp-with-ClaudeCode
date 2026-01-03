@@ -84,7 +84,7 @@ export default function TravelScreen() {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerIcon}>✈️</Text>
-            <Text style={styles.title}>Travel Rain Risk</Text>
+            <Text style={styles.title}>Travel Weather Analysis</Text>
             <Text style={styles.subtitle}>
               Plan your trip with AI-powered weather analysis
             </Text>
