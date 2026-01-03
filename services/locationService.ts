@@ -96,19 +96,14 @@ class LocationService {
     return savedLocation;
   }
 
-  // Search places using Legacy Google Places API (Autocomplete)
+  // Search places using Google Places API (legacy)
   async searchPlaces(query: string): Promise<PlacePrediction[]> {
     if (!query || query.length < 2) {
       return [];
     }
 
-    // Temporarily hardcode for debugging
-    const apiKey = "AIzaSyDiTrqiMEONi5F3BiVmlsB5HidG4FimLwA";
-    console.log("Using API key:", apiKey.substring(0, 15) + "...");
-
-    // Use legacy Places API endpoint
+    const apiKey = ENV.GOOGLE_PLACES_API_KEY;
     const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=(cities)&key=${apiKey}`;
-    console.log("Request URL:", url.substring(0, 80) + "...");
 
     const response = await fetch(url);
 
@@ -138,7 +133,7 @@ class LocationService {
     }));
   }
 
-  // Get place details (coordinates) from place_id using Legacy API
+  // Get place details from Google Places API (legacy)
   async getPlaceDetails(placeId: string): Promise<PlaceDetailsResponse> {
     const apiKey = ENV.GOOGLE_PLACES_API_KEY;
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,name,formatted_address,address_components&key=${apiKey}`;
