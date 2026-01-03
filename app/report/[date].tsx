@@ -17,6 +17,17 @@ import { getHourlyForecast12 } from "../../services/forecastService";
 import { computeDaySummaryFacts, generateDaySummary, DaySummaryFacts } from "../../services/gemini/summaryService";
 import { COLORS, GRADIENTS, SHADOWS } from "../../constants/theme";
 
+// Wind level helpers
+type WindLevel = "Calm" | "Light" | "Moderate" | "Strong" | "Very Strong";
+
+function getWindLevel(avgWindKmh: number): { level: WindLevel; emoji: string; color: string } {
+  if (avgWindKmh < 5) return { level: "Calm", emoji: "🍃", color: "#22c55e" };
+  if (avgWindKmh < 20) return { level: "Light", emoji: "🌿", color: "#84cc16" };
+  if (avgWindKmh < 40) return { level: "Moderate", emoji: "💨", color: "#fbbf24" };
+  if (avgWindKmh < 60) return { level: "Strong", emoji: "🌬️", color: "#f97316" };
+  return { level: "Very Strong", emoji: "🌪️", color: "#ef4444" };
+}
+
 const RISK_COLORS: Record<DayRiskLevel, string> = {
   LOW: "#22c55e",
   MEDIUM: "#f59e0b",
@@ -192,6 +203,11 @@ function StatsRow({
     ? (dayForecast.precipAmountMmDay ?? 0) + (dayForecast.precipAmountMmNight ?? 0)
     : 0;
 
+  // Get wind level
+  const windInfo = dayForecast?.windSpeedKmh != null
+    ? getWindLevel(dayForecast.windSpeedKmh)
+    : null;
+
   return (
     <View style={styles.statsRow}>
       <View style={styles.statItem}>
@@ -205,17 +221,26 @@ function StatsRow({
       </View>
       <View style={styles.statDivider} />
       <View style={styles.statItem}>
-        <Text style={styles.statLabel}>Rain Window</Text>
+        <Text style={styles.statLabel}>Precipitation</Text>
         <Text style={styles.statValue}>
-          {rainWindow || "No rain expected"}
+          {totalPrecipMm > 0 ? `${totalPrecipMm.toFixed(1)} mm` : "None"}
         </Text>
       </View>
       <View style={styles.statDivider} />
       <View style={styles.statItem}>
-        <Text style={styles.statLabel}>Total Rain</Text>
-        <Text style={styles.statValue}>
-          {totalPrecipMm > 0 ? `${totalPrecipMm.toFixed(1)} mm` : "0 mm"}
-        </Text>
+        <Text style={styles.statLabel}>Wind</Text>
+        {windInfo ? (
+          <>
+            <Text style={styles.statValue}>
+              {windInfo.emoji} {windInfo.level}
+            </Text>
+            <Text style={[styles.statSubValue, { color: windInfo.color }]}>
+              {dayForecast?.windSpeedKmh?.toFixed(0)} km/h
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.statValue}>N/A</Text>
+        )}
       </View>
     </View>
   );
