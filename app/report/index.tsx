@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -11,8 +11,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTravelRisk } from "../../hooks/useTravelRisk";
-import { getDestination } from "../../constants/destinations";
-import { DestinationId, DayRisk, DayRiskLevel, DayForecast } from "../../types/travel.types";
+import { DESTINATIONS } from "../../constants/destinations";
+import { Destination, DestinationId, DayRisk, DayRiskLevel, DayForecast } from "../../types/travel.types";
 import { formatDate } from "../../utils/dateRange";
 import { COLORS, GRADIENTS, SHADOWS } from "../../constants/theme";
 
@@ -247,6 +247,10 @@ export default function ReportScreen() {
   const params = useLocalSearchParams<{
     itineraryId: string;
     destinationId: string;
+    destinationKey?: string;
+    destinationName?: string;
+    destinationCountry?: string;
+    destinationTimezone?: string;
     startDate: string;
     endDate: string;
   }>();
@@ -254,7 +258,30 @@ export default function ReportScreen() {
   const { loading, refreshing, error, report, forecastDays, generate, refresh } =
     useTravelRisk();
 
-  const destination = getDestination(params.destinationId as DestinationId);
+  // Build destination from params - support both preset and searched destinations
+  const destination = useMemo(() => {
+    // First try to find in preset destinations
+    const preset = DESTINATIONS.find((d) => d.id === params.destinationId);
+    if (preset) {
+      return preset;
+    }
+
+    // Otherwise build from params (searched destination)
+    if (params.destinationKey && params.destinationName) {
+      return {
+        id: params.destinationId as DestinationId,
+        displayName: params.destinationName,
+        countryCode: params.destinationCountry || "",
+        timezone: params.destinationTimezone || "UTC",
+        accuweatherLocationKey: params.destinationKey,
+        lat: 0,
+        lon: 0,
+      } as Destination;
+    }
+
+    // Fallback to first destination if nothing matches
+    return DESTINATIONS[0];
+  }, [params.destinationId, params.destinationKey, params.destinationName, params.destinationCountry, params.destinationTimezone]);
 
   const itinerary = {
     id: params.itineraryId || "temp",
