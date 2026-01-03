@@ -74,6 +74,9 @@ function DayItem({ item, isToday, minTemp, maxTemp, onPress }: {
         <Text style={styles.tempSeparator}>/</Text>
         <Text style={styles.lowTemp}>{low}°</Text>
       </View>
+
+      {/* Chevron indicator */}
+      <Text style={styles.chevron}>›</Text>
     </Pressable>
   );
 }
@@ -134,12 +137,16 @@ const styles = StyleSheet.create({
   dayItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    marginHorizontal: -10,
+    marginVertical: 2,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.3)",
   },
   dayItemPressed: {
-    backgroundColor: "rgba(0,0,0,0.03)",
+    backgroundColor: "rgba(74, 144, 217, 0.12)",
+    transform: [{ scale: 0.98 }],
   },
   dayName: {
     width: 50,
@@ -186,5 +193,11 @@ const styles = StyleSheet.create({
   lowTemp: {
     fontSize: 14,
     color: COLORS.textMuted,
+  },
+  chevron: {
+    fontSize: 20,
+    color: COLORS.textMuted,
+    marginLeft: 8,
+    fontWeight: "300",
   },
 });
