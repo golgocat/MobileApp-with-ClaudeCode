@@ -142,11 +142,12 @@ ${factsJson}`;
     ],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 256,
+      maxOutputTokens: 512,
+      stopSequences: [],
     },
     systemInstruction: {
       parts: [{
-        text: "You are a concise weather assistant for a mobile app. Write brief, practical daily forecast summaries. Never use emojis, markdown, or bullet points. Focus on temperature, rain timing, and one actionable tip."
+        text: "You are a concise weather assistant for a mobile app. Write brief, practical daily forecast summaries. Never use emojis, markdown, or bullet points. Focus on temperature, rain timing, and one actionable tip. Always write complete sentences that end with proper punctuation."
       }]
     }
   };
@@ -170,5 +171,27 @@ ${factsJson}`;
     throw new Error("Gemini returned empty response");
   }
 
-  return responseText.trim();
+  const trimmed = responseText.trim();
+
+  // Check if response appears incomplete (doesn't end with sentence-ending punctuation)
+  const endsWithPunctuation = /[.!?]$/.test(trimmed);
+  if (!endsWithPunctuation && trimmed.length > 0) {
+    // Try to salvage by finding the last complete sentence
+    const lastSentenceEnd = Math.max(
+      trimmed.lastIndexOf('. '),
+      trimmed.lastIndexOf('! '),
+      trimmed.lastIndexOf('? '),
+      trimmed.lastIndexOf('.'),
+      trimmed.lastIndexOf('!'),
+      trimmed.lastIndexOf('?')
+    );
+
+    if (lastSentenceEnd > trimmed.length * 0.5) {
+      // If we found a sentence end past halfway, return up to that point
+      return trimmed.substring(0, lastSentenceEnd + 1);
+    }
+    // Otherwise return what we have - it may still be useful
+  }
+
+  return trimmed;
 }
