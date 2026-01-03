@@ -104,8 +104,8 @@ class WeatherService {
       2: '🌤️', // Mostly Sunny
       3: '⛅', // Partly Sunny
       4: '⛅', // Intermittent Clouds
-      5: '🌥️', // Hazy Sunshine
-      6: '🌥️', // Mostly Cloudy
+      5: '⛅', // Hazy Sunshine
+      6: '☁️', // Mostly Cloudy
       7: '☁️', // Cloudy
       8: '☁️', // Dreary
       11: '🌫️', // Fog
