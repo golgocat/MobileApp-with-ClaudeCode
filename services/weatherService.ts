@@ -108,6 +108,8 @@ class WeatherService {
       6: '☁', // Mostly Cloudy
       7: '☁', // Cloudy
       8: '☁', // Dreary
+      9: '🌞', // Reserved - treat as sunny
+      10: '🌞', // Reserved - treat as sunny
       11: '🌫', // Fog
       12: '🌧', // Showers
       13: '🌦', // Mostly Cloudy w/ Showers
@@ -142,7 +144,7 @@ class WeatherService {
       44: '❄', // Mostly Cloudy w/ Snow (night)
     };
 
-    return emojiMap[iconNumber] || '🌡';
+    return emojiMap[iconNumber] || '⛅';
   }
 }
 
