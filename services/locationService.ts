@@ -102,10 +102,13 @@ class LocationService {
       return [];
     }
 
-    const apiKey = ENV.GOOGLE_PLACES_API_KEY;
+    // Temporarily hardcode for debugging
+    const apiKey = "AIzaSyDiTrqiMEONi5F3BiVmlsB5HidG4FimLwA";
+    console.log("Using API key:", apiKey.substring(0, 15) + "...");
 
     // Use legacy Places API endpoint
     const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=(cities)&key=${apiKey}`;
+    console.log("Request URL:", url.substring(0, 80) + "...");
 
     const response = await fetch(url);
 
