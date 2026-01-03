@@ -42,7 +42,7 @@ export function WeatherDetails({ current }: WeatherDetailsProps) {
           icon="💧"
         />
         <DetailItem
-          label="WIND"
+          label="CURRENT WIND"
           value={`${windSpeed} km/h ${windDirection}`}
           icon="💨"
         />

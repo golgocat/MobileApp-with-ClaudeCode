@@ -201,7 +201,7 @@ function StatsRow({
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Wind</Text>
+          <Text style={styles.statLabel}>Forecast Wind</Text>
           {windInfo ? (
             <>
               <Text style={styles.statValue}>
