@@ -101,7 +101,7 @@ class WeatherService {
   getWeatherEmoji(iconNumber: number): string {
     const emojiMap: Record<number, string> = {
       1: '☀️', // Sunny
-      2: '🌤️', // Mostly Sunny
+      2: '☀️', // Mostly Sunny
       3: '⛅', // Partly Sunny
       4: '⛅', // Intermittent Clouds
       5: '⛅', // Hazy Sunshine
