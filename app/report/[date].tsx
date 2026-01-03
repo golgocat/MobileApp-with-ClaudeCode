@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,8 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
-import { DayRisk, DayForecast, TravelRiskReport, DayRiskLevel, HourlyForecast } from "../../types/travel.types";
-import { getDestination } from "../../constants/destinations";
-import { DestinationId } from "../../types/travel.types";
+import { DayRisk, DayForecast, TravelRiskReport, DayRiskLevel, HourlyForecast, Destination, DestinationId } from "../../types/travel.types";
+import { DESTINATIONS } from "../../constants/destinations";
 import { formatDate } from "../../utils/dateRange";
 import { getHourlyForecast12 } from "../../services/forecastService";
 import { computeDaySummaryFacts, generateDaySummary, DaySummaryFacts } from "../../services/gemini/summaryService";
@@ -338,6 +337,10 @@ export default function DayDetailScreen() {
   const params = useLocalSearchParams<{
     date: string;
     destinationId: string;
+    destinationKey?: string;
+    destinationName?: string;
+    destinationCountry?: string;
+    destinationTimezone?: string;
     reportJson: string;
     forecastJson: string;
   }>();
@@ -346,7 +349,30 @@ export default function DayDetailScreen() {
   const [hourlyLoading, setHourlyLoading] = useState(true);
   const [summaryFacts, setSummaryFacts] = useState<DaySummaryFacts | null>(null);
 
-  const destination = getDestination(params.destinationId as DestinationId);
+  // Build destination from params - support both preset and searched destinations
+  const destination = useMemo(() => {
+    // First try to find in preset destinations
+    const preset = DESTINATIONS.find((d) => d.id === params.destinationId);
+    if (preset) {
+      return preset;
+    }
+
+    // Otherwise build from params (searched destination)
+    if (params.destinationKey && params.destinationName) {
+      return {
+        id: params.destinationId as DestinationId,
+        displayName: params.destinationName,
+        countryCode: params.destinationCountry || "",
+        timezone: params.destinationTimezone || "UTC",
+        accuweatherLocationKey: params.destinationKey,
+        lat: 0,
+        lon: 0,
+      } as Destination;
+    }
+
+    // Fallback to first destination if nothing matches
+    return DESTINATIONS[0];
+  }, [params.destinationId, params.destinationKey, params.destinationName, params.destinationCountry, params.destinationTimezone]);
 
   let dayRisk: DayRisk | undefined;
   let dayForecast: DayForecast | undefined;
