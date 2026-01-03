@@ -52,6 +52,18 @@ export default function RootLayout() {
             headerShadowVisible: false,
           }}
         />
+        <Stack.Screen
+          name="location/index"
+          options={{
+            headerShown: true,
+            headerTitle: "Select Location",
+            headerStyle: { backgroundColor: COLORS.gradientStart },
+            headerTintColor: COLORS.textPrimary,
+            headerTitleStyle: { fontWeight: "600" },
+            headerBackTitle: " ",
+            headerShadowVisible: false,
+          }}
+        />
       </Stack>
     </SafeAreaProvider>
   );

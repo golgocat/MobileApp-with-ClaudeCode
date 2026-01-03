@@ -4,6 +4,7 @@ import {
   DailyForecastResponse,
   WeatherData,
 } from '../types/weather.types';
+import { AccuWeatherGeopositionResult } from '../types/location.types';
 
 const API_KEY = process.env.EXPO_PUBLIC_ACCUWEATHER_API_KEY || '';
 const BASE_URL = 'https://dataservice.accuweather.com';
@@ -91,6 +92,18 @@ class WeatherService {
       daily: dailyResponse.DailyForecasts,
       headline: dailyResponse.Headline.Text,
     };
+  }
+
+  async getLocationByCoordinates(lat: number, lon: number): Promise<AccuWeatherGeopositionResult> {
+    const url = `${BASE_URL}/locations/v1/cities/geoposition/search?apikey=${API_KEY}&q=${lat},${lon}`;
+
+    const response = await this.fetchWithTimeout(url);
+
+    if (!response.ok) {
+      throw new Error(`Geoposition search failed: ${response.status}`);
+    }
+
+    return response.json();
   }
 
   getWeatherIconUrl(iconNumber: number): string {

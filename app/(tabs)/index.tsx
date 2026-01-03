@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,15 +7,15 @@ import {
   ActivityIndicator,
   StyleSheet,
   Pressable,
-  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router, useFocusEffect } from "expo-router";
 import { useWeather } from "../../hooks/useWeather";
-import { DESTINATIONS } from "../../constants/destinations";
 import { COLORS, GRADIENTS } from "../../constants/theme";
-import { Destination } from "../../types/travel.types";
+import { SavedLocation } from "../../types/location.types";
+import { locationStorage } from "../../services/locationStorage";
 import {
   CurrentWeather,
   HourlyForecast,
@@ -24,16 +24,43 @@ import {
 } from "../../components/weather";
 
 export default function WeatherScreen() {
-  const [selectedLocation, setSelectedLocation] = useState<Destination>(
-    DESTINATIONS[0]
-  ); // Default to Dubai
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null);
+  const [locationsLoading, setLocationsLoading] = useState(true);
 
-  const { weather, loading, error, refreshing, refresh } = useWeather(
-    selectedLocation.accuweatherLocationKey
+  // Load pinned location on mount and when screen comes into focus
+  const loadPinnedLocation = useCallback(async () => {
+    try {
+      const pinned = await locationStorage.getPinnedLocation();
+      if (pinned) {
+        setSelectedLocation(pinned);
+      }
+    } catch (error) {
+      console.error("Error loading pinned location:", error);
+    } finally {
+      setLocationsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPinnedLocation();
+  }, [loadPinnedLocation]);
+
+  // Reload when screen comes into focus (after selecting location)
+  useFocusEffect(
+    useCallback(() => {
+      loadPinnedLocation();
+    }, [loadPinnedLocation])
   );
 
-  if (loading && !weather) {
+  const { weather, loading, error, refreshing, refresh } = useWeather(
+    selectedLocation?.accuweatherLocationKey
+  );
+
+  const handleLocationPress = () => {
+    router.push("/location" as any);
+  };
+
+  if (locationsLoading || (loading && !weather)) {
     return (
       <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
         <SafeAreaView style={styles.centerContent}>
@@ -59,6 +86,20 @@ export default function WeatherScreen() {
     );
   }
 
+  if (!selectedLocation) {
+    return (
+      <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
+        <SafeAreaView style={styles.centerContent}>
+          <Text style={styles.errorEmoji}>📍</Text>
+          <Text style={styles.errorTitle}>No Location Selected</Text>
+          <Pressable style={styles.retryButton} onPress={handleLocationPress}>
+            <Text style={styles.retryButtonText}>Select Location</Text>
+          </Pressable>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
   return (
     <LinearGradient colors={[...GRADIENTS.main]} style={styles.container}>
       <StatusBar style="dark" />
@@ -77,7 +118,7 @@ export default function WeatherScreen() {
           {/* Location Picker */}
           <Pressable
             style={styles.locationPicker}
-            onPress={() => setShowLocationPicker(true)}
+            onPress={handleLocationPress}
           >
             <Text style={styles.locationText}>
               {selectedLocation.displayName}, {selectedLocation.countryCode}
@@ -112,46 +153,6 @@ export default function WeatherScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-
-      {/* Location Picker Modal */}
-      <Modal
-        visible={showLocationPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLocationPicker(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowLocationPicker(false)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Location</Text>
-            {DESTINATIONS.map((dest) => (
-              <Pressable
-                key={dest.id}
-                style={[
-                  styles.modalOption,
-                  selectedLocation.id === dest.id && styles.modalOptionSelected,
-                ]}
-                onPress={() => {
-                  setSelectedLocation(dest);
-                  setShowLocationPicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    selectedLocation.id === dest.id &&
-                      styles.modalOptionTextSelected,
-                  ]}
-                >
-                  {dest.displayName}, {dest.countryCode}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
     </LinearGradient>
   );
 }
@@ -226,44 +227,5 @@ const styles = StyleSheet.create({
   attributionText: {
     color: COLORS.textMuted,
     fontSize: 12,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 24,
-    padding: 20,
-    width: "80%",
-    maxWidth: 320,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  modalTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  modalOption: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  modalOptionSelected: {
-    backgroundColor: "rgba(74, 144, 217, 0.15)",
-  },
-  modalOptionText: {
-    color: COLORS.textSecondary,
-    fontSize: 16,
-  },
-  modalOptionTextSelected: {
-    color: COLORS.accentBlue,
-    fontWeight: "600",
   },
 });
