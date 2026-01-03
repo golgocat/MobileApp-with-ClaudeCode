@@ -1,33 +1,50 @@
 import * as Location from "expo-location";
 import { weatherService } from "./weatherService";
 import { locationStorage } from "./locationStorage";
-import { SavedLocation, AccuWeatherGeopositionResult } from "../types/location.types";
+import { SavedLocation } from "../types/location.types";
 
 const GOOGLE_PLACES_API_KEY = "AIzaSyAI9YXMp5-ZDHNYDNoM42ZDV-tw2aWmzTI";
 
-interface PlacePrediction {
-  place_id: string;
-  description: string;
-  structured_formatting: {
-    main_text: string;
-    secondary_text: string;
+// New Places API response types
+interface PlaceSuggestion {
+  placePrediction: {
+    placeId: string;
+    text: {
+      text: string;
+    };
+    structuredFormat: {
+      mainText: {
+        text: string;
+      };
+      secondaryText: {
+        text: string;
+      };
+    };
   };
 }
 
-interface PlaceDetails {
-  geometry: {
-    location: {
-      lat: number;
-      lng: number;
-    };
+interface PlaceDetailsResponse {
+  location: {
+    latitude: number;
+    longitude: number;
   };
-  name: string;
-  formatted_address: string;
-  address_components: Array<{
-    long_name: string;
-    short_name: string;
+  displayName: {
+    text: string;
+  };
+  formattedAddress: string;
+  addressComponents: Array<{
+    longText: string;
+    shortText: string;
     types: string[];
   }>;
+}
+
+// Simplified type for UI
+export interface PlacePrediction {
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
 }
 
 class LocationService {
@@ -80,56 +97,84 @@ class LocationService {
     return savedLocation;
   }
 
-  // Search places using Google Places API (Autocomplete)
+  // Search places using NEW Google Places API (Autocomplete)
   async searchPlaces(query: string): Promise<PlacePrediction[]> {
     if (!query || query.length < 2) {
       return [];
     }
 
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-      query
-    )}&types=(cities)&key=${GOOGLE_PLACES_API_KEY}`;
+    const url = "https://places.googleapis.com/v1/places:autocomplete";
 
-    const response = await fetch(url);
-    const data = await response.json();
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+      },
+      body: JSON.stringify({
+        input: query,
+        includedPrimaryTypes: ["locality", "administrative_area_level_1", "administrative_area_level_2"],
+      }),
+    });
 
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      console.error("Google Places error:", data.status, data.error_message);
-      throw new Error(`Places search failed: ${data.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Google Places error:", response.status, errorText);
+      throw new Error(`Places search failed: ${response.status}`);
     }
 
-    return data.predictions || [];
+    const data = await response.json();
+
+    if (!data.suggestions) {
+      return [];
+    }
+
+    // Transform to simplified format
+    return data.suggestions
+      .filter((s: PlaceSuggestion) => s.placePrediction)
+      .map((s: PlaceSuggestion) => ({
+        placeId: s.placePrediction.placeId,
+        description: s.placePrediction.text.text,
+        mainText: s.placePrediction.structuredFormat?.mainText?.text || s.placePrediction.text.text,
+        secondaryText: s.placePrediction.structuredFormat?.secondaryText?.text || "",
+      }));
   }
 
-  // Get place details (coordinates) from place_id
-  async getPlaceDetails(placeId: string): Promise<PlaceDetails> {
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,name,formatted_address,address_components&key=${GOOGLE_PLACES_API_KEY}`;
+  // Get place details (coordinates) from place_id using NEW API
+  async getPlaceDetails(placeId: string): Promise<PlaceDetailsResponse> {
+    const url = `https://places.googleapis.com/v1/places/${placeId}`;
 
-    const response = await fetch(url);
-    const data = await response.json();
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+        "X-Goog-FieldMask": "location,displayName,formattedAddress,addressComponents",
+      },
+    });
 
-    if (data.status !== "OK") {
-      console.error("Google Places details error:", data.status);
-      throw new Error(`Place details failed: ${data.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Google Places details error:", response.status, errorText);
+      throw new Error(`Place details failed: ${response.status}`);
     }
 
-    return data.result;
+    return response.json();
   }
 
   // Add a place from Google Places search
   async addPlaceToSaved(placeId: string): Promise<SavedLocation> {
     // Get place details from Google
     const placeDetails = await this.getPlaceDetails(placeId);
-    const { lat, lng } = placeDetails.geometry.location;
+    const { latitude, longitude } = placeDetails.location;
 
     // Get AccuWeather location key
-    const accuLocation = await weatherService.getLocationByCoordinates(lat, lng);
+    const accuLocation = await weatherService.getLocationByCoordinates(latitude, longitude);
 
     // Extract country code from address components
-    const countryComponent = placeDetails.address_components.find((c) =>
+    const countryComponent = placeDetails.addressComponents?.find((c) =>
       c.types.includes("country")
     );
-    const countryCode = countryComponent?.short_name || accuLocation.Country.ID;
+    const countryCode = countryComponent?.shortText || accuLocation.Country.ID;
 
     const savedLocation = await locationStorage.addLocation({
       displayName: accuLocation.LocalizedName,

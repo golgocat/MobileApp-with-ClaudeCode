@@ -15,16 +15,7 @@ import { router } from "expo-router";
 import { COLORS, GRADIENTS } from "../../constants/theme";
 import { SavedLocation } from "../../types/location.types";
 import { locationStorage } from "../../services/locationStorage";
-import { locationService } from "../../services/locationService";
-
-interface PlacePrediction {
-  place_id: string;
-  description: string;
-  structured_formatting: {
-    main_text: string;
-    secondary_text: string;
-  };
-}
+import { locationService, PlacePrediction } from "../../services/locationService";
 
 export default function LocationPickerScreen() {
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
@@ -71,7 +62,7 @@ export default function LocationPickerScreen() {
   const handleSelectSearchResult = async (prediction: PlacePrediction) => {
     setAddingLocation(true);
     try {
-      await locationService.addPlaceToSaved(prediction.place_id);
+      await locationService.addPlaceToSaved(prediction.placeId);
       await loadLocations();
       setSearchQuery("");
       setSearchResults([]);
@@ -182,16 +173,16 @@ export default function LocationPickerScreen() {
               <View style={styles.searchResults}>
                 {searchResults.map((result) => (
                   <Pressable
-                    key={result.place_id}
+                    key={result.placeId}
                     style={styles.searchResultItem}
                     onPress={() => handleSelectSearchResult(result)}
                     disabled={addingLocation}
                   >
                     <Text style={styles.searchResultMain}>
-                      {result.structured_formatting.main_text}
+                      {result.mainText}
                     </Text>
                     <Text style={styles.searchResultSecondary}>
-                      {result.structured_formatting.secondary_text}
+                      {result.secondaryText}
                     </Text>
                   </Pressable>
                 ))}
