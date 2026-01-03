@@ -27,6 +27,27 @@ function getWindLevel(avgWindKmh: number): { level: WindLevel; emoji: string; co
   return { level: "Very Strong", emoji: "🌪️", color: "#ef4444" };
 }
 
+// Rain intensity helpers based on mm
+type RainIntensity = "None" | "Light" | "Moderate" | "Heavy" | "Very Heavy";
+
+function getRainIntensity(mm: number | null): { level: RainIntensity; emoji: string; color: string } {
+  if (mm === null || mm === 0) return { level: "None", emoji: "☀️", color: "#22c55e" };
+  if (mm < 2.5) return { level: "Light", emoji: "🌦️", color: "#84cc16" };
+  if (mm < 7.5) return { level: "Moderate", emoji: "🌧️", color: "#fbbf24" };
+  if (mm < 15) return { level: "Heavy", emoji: "⛈️", color: "#f97316" };
+  return { level: "Very Heavy", emoji: "🌊", color: "#ef4444" };
+}
+
+// Probability label helpers
+function getProbabilityLabel(prob: number | null): { label: string; color: string } {
+  if (prob === null || prob === 0) return { label: "No chance", color: "#22c55e" };
+  if (prob < 20) return { label: "Unlikely", color: "#84cc16" };
+  if (prob < 40) return { label: "Possible", color: "#fbbf24" };
+  if (prob < 60) return { label: "Likely", color: "#f97316" };
+  if (prob < 80) return { label: "Very Likely", color: "#ef4444" };
+  return { label: "Almost Certain", color: "#dc2626" };
+}
+
 const RISK_COLORS: Record<DayRiskLevel, string> = {
   LOW: "#22c55e",
   MEDIUM: "#f59e0b",
@@ -472,11 +493,11 @@ export default function DayDetailScreen() {
   const listData = [
     { type: "header" as const },
     { type: "summary" as const },
+    { type: "precipitation" as const }, // Always show precipitation breakdown
     { type: "stats" as const },
     { type: "hourly" as const },
     { type: "advice" as const },
     { type: "analysis" as const },
-    ...(totalRainfall !== null || dayRisk.expectedRainMmRange ? [{ type: "rainfall" as const }] : []),
     ...(dayRisk.flags && dayRisk.flags.length > 0 ? [{ type: "flags" as const }] : []),
   ];
 
@@ -533,6 +554,100 @@ export default function DayDetailScreen() {
           <AISummarySection facts={summaryFacts} onRetry={handleSummaryRetry} />
         );
 
+      case "precipitation":
+        const dayProb = dayForecast?.precipProbabilityDay ?? 0;
+        const nightProb = dayForecast?.precipProbabilityNight ?? 0;
+        const dayMm = dayForecast?.precipAmountMmDay ?? 0;
+        const nightMm = dayForecast?.precipAmountMmNight ?? 0;
+        const dayProbInfo = getProbabilityLabel(dayProb);
+        const nightProbInfo = getProbabilityLabel(nightProb);
+        const dayIntensity = getRainIntensity(dayMm);
+        const nightIntensity = getRainIntensity(nightMm);
+
+        return (
+          <GlassCard title="Precipitation Forecast" emoji="💧">
+            {/* Day Section */}
+            <View style={styles.precipSection}>
+              <Text style={styles.precipPeriodLabel}>☀️ Daytime</Text>
+              <View style={styles.precipRow}>
+                <View style={styles.precipItem}>
+                  <Text style={styles.precipLabel}>Probability</Text>
+                  <Text style={[styles.precipValue, { color: dayProbInfo.color }]}>
+                    {dayProb}%
+                  </Text>
+                  <Text style={[styles.precipSubLabel, { color: dayProbInfo.color }]}>
+                    {dayProbInfo.label}
+                  </Text>
+                </View>
+                <View style={styles.precipDivider} />
+                <View style={styles.precipItem}>
+                  <Text style={styles.precipLabel}>Expected</Text>
+                  <Text style={styles.precipValue}>
+                    {dayMm > 0 ? `${dayMm.toFixed(1)} mm` : "0 mm"}
+                  </Text>
+                  <Text style={[styles.precipSubLabel, { color: dayIntensity.color }]}>
+                    {dayIntensity.emoji} {dayIntensity.level}
+                  </Text>
+                </View>
+              </View>
+              {/* Progress bar for day */}
+              <View style={styles.precipProgressBg}>
+                <View
+                  style={[
+                    styles.precipProgressBar,
+                    { width: `${dayProb}%`, backgroundColor: dayProbInfo.color }
+                  ]}
+                />
+              </View>
+            </View>
+
+            {/* Night Section */}
+            <View style={[styles.precipSection, styles.precipSectionNight]}>
+              <Text style={styles.precipPeriodLabel}>🌙 Nighttime</Text>
+              <View style={styles.precipRow}>
+                <View style={styles.precipItem}>
+                  <Text style={styles.precipLabel}>Probability</Text>
+                  <Text style={[styles.precipValue, { color: nightProbInfo.color }]}>
+                    {nightProb}%
+                  </Text>
+                  <Text style={[styles.precipSubLabel, { color: nightProbInfo.color }]}>
+                    {nightProbInfo.label}
+                  </Text>
+                </View>
+                <View style={styles.precipDivider} />
+                <View style={styles.precipItem}>
+                  <Text style={styles.precipLabel}>Expected</Text>
+                  <Text style={styles.precipValue}>
+                    {nightMm > 0 ? `${nightMm.toFixed(1)} mm` : "0 mm"}
+                  </Text>
+                  <Text style={[styles.precipSubLabel, { color: nightIntensity.color }]}>
+                    {nightIntensity.emoji} {nightIntensity.level}
+                  </Text>
+                </View>
+              </View>
+              {/* Progress bar for night */}
+              <View style={styles.precipProgressBg}>
+                <View
+                  style={[
+                    styles.precipProgressBar,
+                    { width: `${nightProb}%`, backgroundColor: nightProbInfo.color }
+                  ]}
+                />
+              </View>
+            </View>
+
+            {/* Total */}
+            {(dayMm > 0 || nightMm > 0) && (
+              <View style={styles.precipTotal}>
+                <Text style={styles.precipTotalLabel}>Total Expected:</Text>
+                <Text style={styles.precipTotalValue}>
+                  {(dayMm + nightMm).toFixed(1)} mm
+                </Text>
+              </View>
+            )}
+          </GlassCard>
+        );
+
       case "stats":
         return (
           <GlassCard title="Quick Stats" emoji="📊">
@@ -566,37 +681,6 @@ export default function DayDetailScreen() {
               ))
             ) : (
               <Text style={styles.rationaleText}>{dayRisk!.rationale}</Text>
-            )}
-          </GlassCard>
-        );
-
-      case "rainfall":
-        return (
-          <GlassCard title="Expected Rainfall" emoji="🌧️">
-            {totalRainfall !== null ? (
-              <View style={styles.rainfallContainer}>
-                <Text style={styles.rainfallTotal}>
-                  {totalRainfall.toFixed(1)} mm
-                </Text>
-                <Text style={styles.rainfallLabel}>total for the day</Text>
-              </View>
-            ) : dayRisk!.expectedRainMmRange ? (
-              <View style={styles.rainfallContainer}>
-                <Text style={styles.rainfallTotal}>
-                  {dayRisk!.expectedRainMmRange.min} – {dayRisk!.expectedRainMmRange.max} mm
-                </Text>
-                <Text style={styles.rainfallLabel}>expected range</Text>
-              </View>
-            ) : null}
-            {dayForecast && (
-              <View style={styles.rainfallBreakdown}>
-                <Text style={styles.breakdownText}>
-                  Day: {dayForecast.precipAmountMmDay?.toFixed(1) ?? "0"} mm ({dayForecast.precipProbabilityDay ?? 0}% chance)
-                </Text>
-                <Text style={styles.breakdownText}>
-                  Night: {dayForecast.precipAmountMmNight?.toFixed(1) ?? "0"} mm ({dayForecast.precipProbabilityNight ?? 0}% chance)
-                </Text>
-              </View>
             )}
           </GlassCard>
         );
@@ -962,6 +1046,85 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: 13,
     marginBottom: 4,
+  },
+  // Precipitation section styles
+  precipSection: {
+    marginBottom: 16,
+  },
+  precipSectionNight: {
+    marginBottom: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.06)",
+  },
+  precipPeriodLabel: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+  precipRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  precipItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  precipDivider: {
+    width: 1,
+    height: 50,
+    backgroundColor: "rgba(0,0,0,0.08)",
+    marginHorizontal: 12,
+  },
+  precipLabel: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  precipValue: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  precipSubLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  precipProgressBg: {
+    height: 6,
+    backgroundColor: "rgba(0,0,0,0.06)",
+    borderRadius: 3,
+    marginTop: 10,
+    overflow: "hidden",
+  },
+  precipProgressBar: {
+    height: "100%",
+    borderRadius: 3,
+  },
+  precipTotal: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 12,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.06)",
+    gap: 8,
+  },
+  precipTotalLabel: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  precipTotalValue: {
+    color: COLORS.accentBlue,
+    fontSize: 18,
+    fontWeight: "700",
   },
   flagsContainer: {
     flexDirection: "row",
