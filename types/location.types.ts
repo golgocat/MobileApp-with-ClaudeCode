@@ -26,6 +26,10 @@ export interface AccuWeatherGeopositionResult {
     ID: string;
     LocalizedName: string;
   };
+  AdministrativeArea?: {
+    ID: string;
+    LocalizedName: string;
+  };
   TimeZone: {
     Name: string;
   };

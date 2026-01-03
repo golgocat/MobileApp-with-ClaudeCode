@@ -31,6 +31,8 @@ export default function LocationPickerScreen() {
 
   const loadLocations = async () => {
     try {
+      // Clear cache to ensure fresh data
+      locationStorage.clearCache();
       const locations = await locationStorage.getLocations();
       setSavedLocations(locations);
     } catch (error) {
@@ -92,18 +94,27 @@ export default function LocationPickerScreen() {
     }
   };
 
-  const handleSelectLocation = (location: SavedLocation) => {
-    router.back();
-    // The parent screen should listen for this via params or context
-    router.setParams({ selectedLocationId: location.id });
+  // Tap location row to select it and show weather
+  const handleSelectLocation = async (location: SavedLocation) => {
+    try {
+      // Set as pinned location so it shows on weather screen
+      await locationStorage.setPinnedLocation(location.id);
+      router.back();
+    } catch (error) {
+      console.error("Error selecting location:", error);
+    }
   };
 
+  // Pin button - pins location to top of My Locations list (stays on screen)
   const handlePinLocation = async (location: SavedLocation) => {
+    console.log("Pin button pressed for:", location.displayName, location.id);
     try {
       await locationStorage.setPinnedLocation(location.id);
+      // Reload to show updated pin status
       await loadLocations();
     } catch (error) {
       console.error("Error pinning location:", error);
+      Alert.alert("Error", "Failed to pin location. Please try again.");
     }
   };
 
@@ -221,7 +232,7 @@ export default function LocationPickerScreen() {
 
           {/* Preset Locations */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Favorites</Text>
+            <Text style={styles.sectionTitle}>Top Locations</Text>
             {presetLocations.map((location) => (
               <LocationItem
                 key={location.id}

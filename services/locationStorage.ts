@@ -100,6 +100,8 @@ class LocationStorageService {
   }
 
   async setPinnedLocation(id: string): Promise<void> {
+    // Clear cache to ensure fresh data
+    this.cachedLocations = null;
     const locations = await this.getLocations();
 
     // Unpin all, then pin the selected one
@@ -108,12 +110,19 @@ class LocationStorageService {
       isPinned: l.id === id,
     }));
 
+    console.log("Setting pinned location:", id);
+    console.log("Updated locations:", updated.map(l => ({ id: l.id, name: l.displayName, isPinned: l.isPinned })));
+
     await this.saveLocations(updated);
   }
 
   async getPinnedLocation(): Promise<SavedLocation | null> {
+    // Clear cache to get fresh data (important when returning from location picker)
+    this.cachedLocations = null;
     const locations = await this.getLocations();
-    return locations.find((l) => l.isPinned) || locations[0] || null;
+    const pinned = locations.find((l) => l.isPinned) || locations[0] || null;
+    console.log("Getting pinned location:", pinned?.displayName, pinned?.id);
+    return pinned;
   }
 
   async getLocationById(id: string): Promise<SavedLocation | null> {
