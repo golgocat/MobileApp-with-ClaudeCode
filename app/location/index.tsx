@@ -31,6 +31,8 @@ export default function LocationPickerScreen() {
 
   const loadLocations = async () => {
     try {
+      // Clear cache to ensure fresh data
+      locationStorage.clearCache();
       const locations = await locationStorage.getLocations();
       setSavedLocations(locations);
     } catch (error) {
@@ -99,11 +101,14 @@ export default function LocationPickerScreen() {
   };
 
   const handlePinLocation = async (location: SavedLocation) => {
+    console.log("Pin button pressed for:", location.displayName, location.id);
     try {
       await locationStorage.setPinnedLocation(location.id);
-      await loadLocations();
+      // Navigate back to home screen after pinning
+      router.back();
     } catch (error) {
       console.error("Error pinning location:", error);
+      Alert.alert("Error", "Failed to pin location. Please try again.");
     }
   };
 
