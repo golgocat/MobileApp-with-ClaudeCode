@@ -1,42 +1,8 @@
 import * as Location from "expo-location";
 import { weatherService } from "./weatherService";
 import { locationStorage } from "./locationStorage";
-import { SavedLocation } from "../types/location.types";
+import { SavedLocation, AccuWeatherGeopositionResult } from "../types/location.types";
 import { ENV } from "../config/env";
-
-// New Places API response types
-interface PlaceSuggestion {
-  placePrediction: {
-    placeId: string;
-    text: {
-      text: string;
-    };
-    structuredFormat: {
-      mainText: {
-        text: string;
-      };
-      secondaryText: {
-        text: string;
-      };
-    };
-  };
-}
-
-interface PlaceDetailsResponse {
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-  displayName: {
-    text: string;
-  };
-  formattedAddress: string;
-  addressComponents: Array<{
-    longText: string;
-    shortText: string;
-    types: string[];
-  }>;
-}
 
 // Simplified type for UI
 export interface PlacePrediction {
@@ -96,99 +62,63 @@ class LocationService {
     return savedLocation;
   }
 
-  // Search places using Google Places API (legacy)
+  // Search places using AccuWeather Location Autocomplete API
   async searchPlaces(query: string): Promise<PlacePrediction[]> {
     if (!query || query.length < 2) {
       return [];
     }
 
-    const apiKey = ENV.GOOGLE_PLACES_API_KEY;
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=(cities)&key=${apiKey}`;
+    const apiKey = ENV.ACCUWEATHER_API_KEY;
+    const url = `https://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey=${apiKey}&q=${encodeURIComponent(query)}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Google Places error:", response.status, errorText);
-      throw new Error(`Places search failed: ${response.status}`);
+      console.error("AccuWeather location search error:", response.status, errorText);
+      throw new Error(`Location search failed: ${response.status}`);
     }
 
     const data = await response.json();
 
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      console.error("Google Places API error:", data.status, data.error_message);
-      throw new Error(`Places API error: ${data.status}`);
-    }
-
-    if (!data.predictions) {
+    if (!Array.isArray(data)) {
       return [];
     }
 
-    // Transform legacy API response to our format
-    return data.predictions.map((p: any) => ({
-      placeId: p.place_id,
-      description: p.description,
-      mainText: p.structured_formatting?.main_text || p.description,
-      secondaryText: p.structured_formatting?.secondary_text || "",
+    // Transform AccuWeather response to our format
+    // Store the AccuWeather location key in placeId for later use
+    return data.map((loc: AccuWeatherGeopositionResult) => ({
+      placeId: loc.Key, // This is the AccuWeather location key
+      description: `${loc.LocalizedName}, ${loc.Country.LocalizedName}`,
+      mainText: loc.LocalizedName,
+      secondaryText: `${loc.AdministrativeArea?.LocalizedName || ""}, ${loc.Country.LocalizedName}`.replace(/^, /, ""),
     }));
   }
 
-  // Get place details from Google Places API (legacy)
-  async getPlaceDetails(placeId: string): Promise<PlaceDetailsResponse> {
-    const apiKey = ENV.GOOGLE_PLACES_API_KEY;
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,name,formatted_address,address_components&key=${apiKey}`;
+  // Get location details from AccuWeather using location key
+  async getLocationDetails(locationKey: string): Promise<AccuWeatherGeopositionResult> {
+    const apiKey = ENV.ACCUWEATHER_API_KEY;
+    const url = `https://dataservice.accuweather.com/locations/v1/${locationKey}?apikey=${apiKey}&details=true`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Google Places details error:", response.status, errorText);
-      throw new Error(`Place details failed: ${response.status}`);
+      console.error("AccuWeather location details error:", response.status, errorText);
+      throw new Error(`Location details failed: ${response.status}`);
     }
 
-    const data = await response.json();
-
-    if (data.status !== "OK") {
-      console.error("Google Places details API error:", data.status, data.error_message);
-      throw new Error(`Place details API error: ${data.status}`);
-    }
-
-    // Transform legacy response to match our interface
-    return {
-      location: {
-        latitude: data.result.geometry.location.lat,
-        longitude: data.result.geometry.location.lng,
-      },
-      displayName: {
-        text: data.result.name,
-      },
-      formattedAddress: data.result.formatted_address,
-      addressComponents: data.result.address_components?.map((c: any) => ({
-        longText: c.long_name,
-        shortText: c.short_name,
-        types: c.types,
-      })) || [],
-    };
+    return response.json();
   }
 
-  // Add a place from Google Places search
-  async addPlaceToSaved(placeId: string): Promise<SavedLocation> {
-    // Get place details from Google
-    const placeDetails = await this.getPlaceDetails(placeId);
-    const { latitude, longitude } = placeDetails.location;
-
-    // Get AccuWeather location key
-    const accuLocation = await weatherService.getLocationByCoordinates(latitude, longitude);
-
-    // Extract country code from address components
-    const countryComponent = placeDetails.addressComponents?.find((c) =>
-      c.types.includes("country")
-    );
-    const countryCode = countryComponent?.shortText || accuLocation.Country.ID;
+  // Add a place from AccuWeather search (placeId is the AccuWeather location key)
+  async addPlaceToSaved(locationKey: string): Promise<SavedLocation> {
+    // Get full location details from AccuWeather
+    const accuLocation = await this.getLocationDetails(locationKey);
 
     const savedLocation = await locationStorage.addLocation({
       displayName: accuLocation.LocalizedName,
-      countryCode,
+      countryCode: accuLocation.Country.ID,
       timezone: accuLocation.TimeZone.Name,
       accuweatherLocationKey: accuLocation.Key,
       lat: accuLocation.GeoPosition.Latitude,
