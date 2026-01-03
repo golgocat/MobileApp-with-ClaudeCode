@@ -77,19 +77,28 @@ export function buildRainRiskPrompt(args: {
 }) {
   const { destination, itinerary, forecasts } = args;
 
-  // Simplified instruction - schema enforcement handles JSON structure
-  const instruction = `You are a travel rain-risk analyst. Analyze the weather forecast data for ${destination.displayName} from ${itinerary.startDate} to ${itinerary.endDate}.
+  // Build a summary of each day's precipitation for clarity
+  const forecastSummary = forecasts.map((f) => {
+    const maxPrecipProb = Math.max(f.precipProbabilityDay ?? 0, f.precipProbabilityNight ?? 0);
+    return `${f.date}: Day=${f.precipProbabilityDay ?? 0}%, Night=${f.precipProbabilityNight ?? 0}%, Max=${maxPrecipProb}%`;
+  }).join('\n');
 
-For each day in the trip range, assess the rain risk based on precipitation probability:
-- LOW: <20% chance of rain
-- MEDIUM: 20-50% chance
-- HIGH: 50-80% chance
-- EXTREME: >80% chance
+  const instruction = `You are a travel weather analyst. Analyze the forecast for ${destination.displayName} from ${itinerary.startDate} to ${itinerary.endDate}.
 
-Set confidence based on forecast reliability (typically 0.7-0.95).
-Include relevant flags like "monsoon_season" or "flash_flood_risk" when applicable.
-Provide concise, practical travel advice and rationale for each day.
-Set expectedRainMmRange to null if precipitation amount data is unavailable.`;
+CRITICAL: Risk level MUST match the precipitation probability data provided. Use the MAXIMUM of day and night precipitation probability:
+- LOW: Max precipitation probability 0-19%
+- MEDIUM: Max precipitation probability 20-49%
+- HIGH: Max precipitation probability 50-79%
+- EXTREME: Max precipitation probability 80-100%
+
+DO NOT assign HIGH or EXTREME risk if precipitation probabilities are low. Cold temperatures alone do NOT justify high rain risk.
+
+Here is the precipitation summary:
+${forecastSummary}
+
+Provide practical advice based on ACTUAL data. If precipitation is 0%, do NOT mention expecting rain.
+Set confidence 0.8-0.95 for near-term forecasts, lower for days further out.
+Only include flags like "flash_flood_risk" when precipitation is actually high (>60%).`;
 
   const input = {
     destination: {
